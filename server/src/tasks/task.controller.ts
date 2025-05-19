@@ -66,7 +66,8 @@ export class TaskController {
   
   updateTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) {
+      // Ensure the user is authenticated
+      if (!req.user || !req.isAuthenticated()) {
         return next(new UnauthorizedError());
       }
       
@@ -86,7 +87,8 @@ export class TaskController {
   
   deleteTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) {
+      // Ensure the user is authenticated
+      if (!req.user || !req.isAuthenticated()) {
         return next(new UnauthorizedError());
       }
       
