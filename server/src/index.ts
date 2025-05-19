@@ -7,6 +7,10 @@ import { errorHandler } from './common/error.middleware';
 // Import feature routers
 import taskRouter from './tasks/task.router';
 import authRouter from './auth/auth.router';
+import projectRouter from './projects/project.router';
+import meetingRouter from './meetings/meeting.router';
+import noteRouter from './notes/note.router';
+import tagRouter from './tags/tag.router';
 
 // Create Express app
 const app: Express = express();
@@ -21,6 +25,10 @@ setupPassport(app);
 // API Routes
 app.use('/api/tasks', taskRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/projects', projectRouter);
+app.use('/api/meetings', meetingRouter);
+app.use('/api/notes', noteRouter);
+app.use('/api/tags', tagRouter);
 
 // Health check endpoint
 app.get('/api/health', (req: Request, res: Response) => {
