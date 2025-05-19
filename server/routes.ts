@@ -11,7 +11,22 @@ import {
   insertTagSchema
 } from "@shared/schema";
 
+// Import our feature routers - we'll keep this commented until we're ready to switch over
+// import taskRouter from './src/tasks/task.router';
+// import projectRouter from './src/projects/project.router';
+// import meetingRouter from './src/meetings/meeting.router';
+// import noteRouter from './src/notes/note.router';
+// import tagRouter from './src/tags/tag.router';
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // When ready to switch to new architecture, uncomment these lines:
+  // app.use('/api/tasks', taskRouter);
+  // app.use('/api/projects', projectRouter);
+  // app.use('/api/meetings', meetingRouter);
+  // app.use('/api/notes', noteRouter);
+  // app.use('/api/tags', tagRouter);
+  
+  // For now, continue with the existing implementation:
   // Set up authentication routes
   setupAuth(app);
 
