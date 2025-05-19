@@ -9,7 +9,8 @@ import {
   Check,
   AlertCircle,
   TrendingUp,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from "lucide-react";
 
 interface StatItem {
@@ -26,6 +27,8 @@ interface SummaryCardProps {
 }
 
 export function SummaryCard({ title, count, icon, stats }: SummaryCardProps) {
+  const isLoading = count === -1;
+
   const getIcon = () => {
     switch (icon) {
       case "layers":
@@ -42,7 +45,9 @@ export function SummaryCard({ title, count, icon, stats }: SummaryCardProps) {
   };
 
   const getStatIcon = (stat: StatItem) => {
-    if (stat.label === "Done" || stat.label === "Completed") {
+    if (stat.value === -1) {
+      return <Loader2 className="h-4 w-4 mr-1 animate-spin" />;
+    } else if (stat.label === "Done" || stat.label === "Completed") {
       return <Check className="h-4 w-4 mr-1" />;
     } else if (stat.label === "Overdue") {
       return <AlertCircle className="h-4 w-4 mr-1" />;
@@ -61,7 +66,14 @@ export function SummaryCard({ title, count, icon, stats }: SummaryCardProps) {
       <div className="flex justify-between items-start">
         <div>
           <p className="text-muted-foreground text-sm">{title}</p>
-          <h2 className="text-3xl font-bold">{count}</h2>
+          {isLoading ? (
+            <div className="flex items-center h-9">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="ml-2 text-muted-foreground">Loading...</span>
+            </div>
+          ) : (
+            <h2 className="text-3xl font-bold">{count}</h2>
+          )}
           <div className="flex flex-wrap items-center mt-2 text-sm">
             {stats.map((stat, index) => (
               <span 
@@ -74,7 +86,7 @@ export function SummaryCard({ title, count, icon, stats }: SummaryCardProps) {
                 )}
               >
                 {getStatIcon(stat)}
-                {stat.value} {stat.label}
+                {stat.value === -1 ? "..." : stat.value} {stat.label}
               </span>
             ))}
           </div>

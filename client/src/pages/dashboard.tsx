@@ -14,19 +14,19 @@ import { Task, Meeting, Project, Note } from "@shared/schema";
 export default function Dashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const { data: tasks } = useQuery<Task[]>({
+  const { data: tasks, isLoading: isLoadingTasks } = useQuery<Task[]>({
     queryKey: ['/api/tasks'],
   });
 
-  const { data: projects } = useQuery<Project[]>({
+  const { data: projects, isLoading: isLoadingProjects } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
 
-  const { data: meetings } = useQuery<Meeting[]>({
+  const { data: meetings, isLoading: isLoadingMeetings } = useQuery<Meeting[]>({
     queryKey: ['/api/meetings'],
   });
 
-  const { data: notes } = useQuery<Note[]>({
+  const { data: notes, isLoading: isLoadingNotes } = useQuery<Note[]>({
     queryKey: ['/api/notes'],
   });
 
@@ -66,39 +66,39 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <SummaryCard 
                 title="Tasks" 
-                count={tasks?.length || 0} 
+                count={isLoadingTasks ? -1 : (tasks?.length || 0)} 
                 icon="layers"
                 stats={[
-                  { label: "Done", value: completedTasks, color: "success" },
-                  { label: "Overdue", value: overdueTasks, color: "accent" }
+                  { label: "Done", value: isLoadingTasks ? -1 : completedTasks, color: "success" },
+                  { label: "Overdue", value: isLoadingTasks ? -1 : overdueTasks, color: "accent" }
                 ]}
               />
               
               <SummaryCard 
                 title="Projects" 
-                count={projects?.length || 0} 
+                count={isLoadingProjects ? -1 : (projects?.length || 0)} 
                 icon="folder"
                 stats={[
-                  { label: "Active", value: activeProjects, color: "primary" },
-                  { label: "Completed", value: completedProjects, color: "success" }
+                  { label: "Active", value: isLoadingProjects ? -1 : activeProjects, color: "primary" },
+                  { label: "Completed", value: isLoadingProjects ? -1 : completedProjects, color: "success" }
                 ]}
               />
               
               <SummaryCard 
                 title="Meetings" 
-                count={meetings?.length || 0} 
+                count={isLoadingMeetings ? -1 : (meetings?.length || 0)} 
                 icon="calendar"
                 stats={[
-                  { label: "Upcoming", value: upcomingMeetings, color: "primary" }
+                  { label: "Upcoming", value: isLoadingMeetings ? -1 : upcomingMeetings, color: "primary" }
                 ]}
               />
               
               <SummaryCard 
                 title="Notes" 
-                count={notes?.length || 0} 
+                count={isLoadingNotes ? -1 : (notes?.length || 0)} 
                 icon="file-text"
                 stats={[
-                  { label: "Recent", value: recentNotes, color: "primary" }
+                  { label: "Recent", value: isLoadingNotes ? -1 : recentNotes, color: "primary" }
                 ]}
               />
             </div>
@@ -108,15 +108,15 @@ export default function Dashboard() {
             
             {/* Tasks & Meetings Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <TaskList tasks={tasks || []} />
-              <MeetingList meetings={meetings || []} />
+              <TaskList tasks={tasks || []} isLoading={isLoadingTasks} />
+              <MeetingList meetings={meetings || []} isLoading={isLoadingMeetings} />
             </div>
             
             {/* Projects Section */}
-            <ProjectList projects={projects || []} />
+            <ProjectList projects={projects || []} isLoading={isLoadingProjects} />
             
             {/* Notes Section */}
-            <NoteList notes={notes || []} />
+            <NoteList notes={notes || []} isLoading={isLoadingNotes} />
           </div>
         </main>
       </div>
