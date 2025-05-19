@@ -1,0 +1,451 @@
+ProductiTask App Development Instructions
+Overview
+ProductiTask is a productivity application that helps users manage tasks, projects, meetings, and notes in a clean, professional interface. The application will be built as a Progressive Web App (PWA) to enable mobile installation, with a PostgreSQL database (Neon) for data storage, and standard email/password authentication.
+Tech Stack
+Frontend
+
+Framework: React with Next.js
+UI Library: Tailwind CSS with custom components
+State Management: React Context API and React Query
+Icons: Lucide React
+Form Handling: React Hook Form with Zod validation
+
+Backend
+
+Framework: Next.js API routes
+Database: PostgreSQL (Neon)
+ORM: Prisma
+Authentication: NextAuth.js for email/password authentication
+API: RESTful endpoints
+
+Deployment
+
+Hosting: Replit
+PWA Configuration: next-pwa package
+
+Design Guidelines
+Color Palette
+
+Primary: #5271FF (the purple-blue from the screenshot)
+Secondary: #F5F5F7 (light gray for backgrounds)
+Accent: #FF3B30 (for important items, overdue tasks)
+Text: #1D1D1F (primary text), #86868B (secondary text)
+Background: #FFFFFF (white), #F5F5F7 (light gray)
+Success: #34C759 (green for completed items)
+
+Typography
+
+Primary Font: SF Pro or Inter as a similar alternative
+Headings: Bold, 24px, 20px, 18px for different levels
+Body Text: Regular, 16px
+Secondary Text: 14px, light gray color
+
+Design Principles (Apple-inspired)
+
+Clean, minimal interface with plenty of white space
+Rounded corners on cards and buttons (8px radius)
+Subtle shadows for elevation
+Clear visual hierarchy
+Responsive design with mobile-first approach
+Intuitive interactions with smooth transitions
+
+Database Schema
+Users
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  tasks         Task[]
+  projects      Project[]
+  meetings      Meeting[]
+  notes         Note[]
+}
+Tasks
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus @default(TODO)
+  priority    Priority   @default(MEDIUM)
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id])
+  tags        TagsOnTasks[]
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+Projects
+model Project {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  tasks       Task[]
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+Meetings
+model Meeting {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  duration    Int       // in minutes
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+}
+Notes
+model Note {
+  id          String    @id @default(cuid())
+  title       String
+  content     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  tags        TagsOnNotes[]
+}
+Tags
+model Tag {
+  id          String    @id @default(cuid())
+  name        String
+  color       String    @default("#CCCCCC")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tasks       TagsOnTasks[]
+  notes       TagsOnNotes[]
+}
+
+model TagsOnTasks {
+  taskId      String
+  task        Task      @relation(fields: [taskId], references: [id])
+  tagId       String
+  tag         Tag       @relation(fields: [tagId], references: [id])
+  assignedAt  DateTime  @default(now())
+
+  @@id([taskId, tagId])
+}
+
+model TagsOnNotes {
+  noteId      String
+  note        Note      @relation(fields: [noteId], references: [id])
+  tagId       String
+  tag         Tag       @relation(fields: [tagId], references: [id])
+  assignedAt  DateTime  @default(now())
+
+  @@id([noteId, tagId])
+}
+Feature Implementation
+Authentication
+
+Set up NextAuth.js with email/password provider
+Create sign-up, sign-in, and password reset pages
+Implement protected routes for authenticated users
+Add session management
+Create user profile management
+
+Dashboard
+
+Dashboard layout with summary cards for:
+
+Total Tasks (with count of completed and overdue)
+Projects (with count of active projects)
+Upcoming Meetings
+Notes
+
+
+Recent Tasks section with task cards showing:
+
+Task title
+Priority indicator
+Due date
+Status
+
+
+Upcoming Meetings section with meeting cards showing:
+
+Meeting title
+Duration
+Date and time
+Description
+
+
+
+Tasks Module
+
+Task list view with sorting and filtering options
+Task creation/edit form with:
+
+Title
+Description
+Due date (with date picker)
+Priority selection
+Project association
+Tag selection
+
+
+Task detail view
+Task status toggle
+Task deletion with confirmation
+
+Projects Module
+
+Project list view
+Project creation/edit form with:
+
+Title
+Description
+Status
+
+
+Project detail view showing associated tasks
+Project status management
+Project deletion with confirmation
+
+Meetings Module
+
+Meeting list view with calendar integration
+Meeting creation/edit form with:
+
+Title
+Description
+Date and time picker
+Duration setting
+
+
+Meeting detail view
+Meeting schedule view
+Meeting deletion with confirmation
+
+Notes Module
+
+Notes list view
+Note creation/edit form with rich text editor
+Note detail view
+Note search functionality
+Note deletion with confirmation
+
+Tags Module
+
+Tag management interface
+Tag creation with color selection
+Tag assignment to tasks and notes
+Tag filtering across the application
+
+Gamification Features
+
+Streak tracking for daily app usage
+Achievement system for completing tasks and projects
+Progress visualization
+Points system based on tasks completed, meetings attended, etc.
+Simple analytics showing productivity trends
+
+Mobile Optimization
+
+Responsive design for all screen sizes
+Touch-friendly UI elements
+PWA configuration:
+
+Service worker setup
+Manifest.json configuration
+Offline functionality
+Home screen installation
+
+
+
+Implementation Steps
+1. Project Setup
+bash# Clone the Next.js starter template
+npx create-next-app@latest productitask --typescript --tailwind --eslint
+
+# Navigate to the project directory
+cd productitask
+
+# Install required dependencies
+npm install @prisma/client next-auth bcryptjs zod react-hook-form @hookform/resolvers date-fns lucide-react next-pwa
+npm install -D prisma
+
+# Initialize Prisma
+npx prisma init
+2. Database Configuration
+
+Set up PostgreSQL connection string in .env file for Neon
+Define Prisma schema as outlined above
+Generate Prisma client:
+
+bashnpx prisma generate
+
+Create initial migration:
+
+bashnpx prisma migrate dev --name init
+3. Authentication Implementation
+
+Configure NextAuth.js in pages/api/auth/[...nextauth].js
+Create signup and login pages
+Implement protected layouts and middleware
+Set up user profile management
+
+4. Core Features Implementation
+
+Create layout components:
+
+Sidebar navigation
+Header with user menu
+Main content area
+
+
+Implement dashboard components:
+
+Summary cards
+Recent tasks list
+Upcoming meetings list
+
+
+Build task management features:
+
+Task CRUD operations
+Priority and status management
+Due date handling
+
+
+Develop project management features:
+
+Project CRUD operations
+Project status management
+Task association
+
+
+Create meeting management features:
+
+Meeting CRUD operations
+Calendar view
+Duration calculation
+
+
+Implement notes functionality:
+
+Rich text editor integration
+Notes CRUD operations
+
+
+Add tag management:
+
+Tag CRUD operations
+Color selection
+Tag association with tasks and notes
+
+
+
+5. API Routes Implementation
+Create Next.js API routes for:
+
+User management
+Task operations
+Project operations
+Meeting operations
+Note operations
+Tag operations
+
+6. PWA Configuration
+
+Configure next-pwa in next.config.js
+Create manifest.json with app details
+Add service worker for offline functionality
+Set up appropriate icons for different devices
+
+7. UI/UX Refinement
+
+Apply consistent styling across components
+Implement responsive design for all views
+Add transitions and animations for smooth interactions
+Ensure mobile-friendly interface
+Implement form validation and error handling
+
+8. Gamification Features
+
+Implement streak tracking
+Create achievement system
+Develop progress visualization
+Build points system and analytics
+
+Replit Configuration
+Setting up environment
+
+Create a new Replit using the Next.js template
+Configure environment variables in Replit Secrets:
+
+DATABASE_URL (Neon PostgreSQL connection string)
+NEXTAUTH_SECRET (generated secure string)
+NEXTAUTH_URL (Replit app URL)
+
+
+
+Deployment
+
+Push code to Replit Git
+Run database migrations
+Configure domain settings if needed
+Test PWA installation on mobile devices
+
+Future Enhancements
+
+Collaboration features:
+
+Task assignment
+Project sharing
+Comment system
+
+
+Notification system:
+
+Email reminders
+Push notifications
+
+
+Advanced analytics:
+
+Productivity reports
+Time tracking
+
+
+OAuth integration with Google, Apple, etc.
+Calendar integrations (Google Calendar, Outlook)
+
+Testing Strategy
+
+Unit testing with Jest and React Testing Library
+API route testing
+End-to-end testing with Cypress
+Mobile responsiveness testing
+PWA installation testing
+
+This comprehensive guide should provide all the necessary instructions to build ProductiTask on Replit with the specified requirements. The app follows modern development practices with a clean, professional, and Apple-inspired design.
