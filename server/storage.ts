@@ -22,7 +22,7 @@ const MemoryStore = createMemoryStore(session);
 
 // Define storage interface
 export interface IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: ReturnType<typeof createMemoryStore>;
   
   // User methods
   getUser(id: string): Promise<User | undefined>;
@@ -73,7 +73,7 @@ export class MemStorage implements IStorage {
   private meetings: Map<string, Meeting>;
   private notes: Map<string, Note>;
   private tags: Map<string, Tag>;
-  sessionStore: session.SessionStore;
+  sessionStore: ReturnType<typeof createMemoryStore>;
   
   constructor() {
     this.users = new Map();
@@ -341,7 +341,7 @@ export class MemStorage implements IStorage {
 
 // Database storage implementation for production
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: ReturnType<typeof createMemoryStore>;
   
   constructor() {
     this.sessionStore = new MemoryStore({

@@ -1,0 +1,107 @@
+1. Overall Architecture
+Monorepo structure
+
+Clear separation of client/, server/, and shared/, which simplifies type-sharing and coordinated releases.
+
+Consider adding a workspace manager (e.g. Turborepo, Nx or pnpm workspaces) to speed up local installs, enforce consistent versions, and enable cross-package tasks (lint/test/build) with a single command.
+
+Tech choices
+
+React + Tailwind + shadcn/ui on the front end gives you a modern, composable UI stack.
+
+Express + Drizzle ORM on the back end is lightweight and keeps custom logic in your hands.
+
+PostgreSQL is a solid choice for structured data with relations.
+
+API layer
+
+Single Express app currently. You may eventually split API routes into domain-focused routers (e.g. /tasks, /projects, /meetings) to keep concerns isolated.
+
+2. Backend: Code Quality & Patterns
+Folder layout
+
+Right now server/ probably contains controllers, models, and migrations together. Consider a feature-based layout:
+
+pgsql
+Copy
+Edit
+server/
+  └─ src/
+     ├─ tasks/
+     │    ├─ task.controller.ts
+     │    ├─ task.router.ts
+     │    └─ task.service.ts
+     ├─ projects/
+     ├─ meetings/
+     └─ common/
+          ├─ db.ts
+          └─ error.handler.ts
+Dependency Injection / Services
+
+Right now you likely instantiate Drizzle (or get the DB handle) directly in controllers. Introducing a lightweight DI pattern or explicit “service” layer per feature helps with testing and future swaps (e.g. if you migrate to another ORM).
+
+Error handling & validation
+
+Add a centralized error‐handler middleware to catch uncaught exceptions and format API responses uniformly (JSON: { error: { code, message } }).
+
+Validate incoming request bodies with a schema library (e.g. Zod or Joi) before they hit business logic.
+
+Testing
+
+No tests yet? Start with unit tests for critical services (e.g. task creation) using Jest. Then add integration tests against an in-memory or test Postgres database (e.g. via Docker).
+
+Configuration & secrets
+
+Use a .env or Vault for secrets. Introduce a config module that strictly types all environment variables so missing or mis-typed configs blow up early.
+
+3. Frontend: Code Quality & Patterns
+Component organization
+
+Group UI into feature folders (e.g. client/src/features/tasks/) with subfolders for components, hooks, and styles. That keeps related files together.
+
+Data fetching & state
+
+TanStack Query is a strong choice. Ensure you have consistent query keys per feature and compose hooks (e.g. useTasks(), useCreateTask()) that encapsulate API endpoints.
+
+Type safety
+
+Leverage your shared TypeScript interfaces everywhere. Consider code generation for your API client (e.g. openapi-typescript or tRPC) to avoid drift between front and back.
+
+UI/UX consistency
+
+You’re using shadcn/ui which is great, but audit for consistent spacing, typography and color usage. A design-token system (e.g. Tailwind config extended with semantic tokens) will help.
+
+Testing
+
+Add React Testing Library tests for key screens (task list, project page). Snapshot tests can catch regressions in your UI.
+
+4. Shared Layer & DX
+Shared types
+
+The shared/ folder is a powerful way to keep types DRY. Make sure build scripts catch if you make a breaking change to an interface that the client relies on.
+
+Scripts & linting
+
+Consolidate lint, format, build, and test scripts at the repo root and invoke them across workspaces.
+
+Enforce Prettier and ESLint rules across client and server for consistent code style.
+
+5. Operational Concerns
+CI/CD
+
+Set up GitHub Actions (or equivalent) to run lint, tests, and build on every PR.
+
+Automate deployments (e.g. Docker images to AWS/GCP/Heroku) with clear staging vs. production pipelines.
+
+Monitoring & logging
+
+Add structured logging (e.g. Winston or Pino) on the backend.
+
+Expose a /healthz endpoint and configure uptime monitoring.
+
+Scalability & performance
+
+Backend: consider query-caching (Redis) for heavy reads.
+
+Frontend: code-split routes and lazy-load heavy components to improve initial load.
+
