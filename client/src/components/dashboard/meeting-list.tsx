@@ -4,13 +4,15 @@ import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Meeting } from "@shared/schema";
-import { Plus, Clock } from "lucide-react";
+import { Plus, Clock, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface MeetingListProps {
   meetings: Meeting[];
+  isLoading?: boolean;
 }
 
-export function MeetingList({ meetings }: MeetingListProps) {
+export function MeetingList({ meetings, isLoading = false }: MeetingListProps) {
   const [, navigate] = useLocation();
 
   // Filter upcoming meetings and sort by start time
@@ -34,7 +36,24 @@ export function MeetingList({ meetings }: MeetingListProps) {
       
       <CardContent className="p-5">
         <div className="space-y-4">
-          {upcomingMeetings.length > 0 ? (
+          {isLoading ? (
+            // Loading skeleton
+            Array.from({ length: 2 }).map((_, index) => (
+              <div 
+                key={`skeleton-${index}`} 
+                className="p-4 border-l-4 border-primary/30 bg-secondary rounded-r-lg"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="w-full">
+                    <Skeleton className="h-5 w-2/3 mb-2" />
+                    <Skeleton className="h-3 w-1/2 mb-1" />
+                  </div>
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </div>
+                <Skeleton className="h-3 w-3/4 mt-2" />
+              </div>
+            ))
+          ) : upcomingMeetings.length > 0 ? (
             upcomingMeetings.map((meeting) => (
               <div 
                 key={meeting.id} 

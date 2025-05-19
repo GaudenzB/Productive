@@ -5,12 +5,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Project, Task } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 interface ProjectListProps {
   projects: Project[];
+  isLoading?: boolean;
 }
 
-export function ProjectList({ projects }: ProjectListProps) {
+export function ProjectList({ projects, isLoading = false }: ProjectListProps) {
   const [, navigate] = useLocation();
 
   const { data: tasks } = useQuery<Task[]>({
@@ -51,7 +54,29 @@ export function ProjectList({ projects }: ProjectListProps) {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {activeProjects.length > 0 ? (
+        {isLoading ? (
+          // Loading skeleton
+          Array.from({ length: 3 }).map((_, index) => (
+            <Card 
+              key={`skeleton-${index}`} 
+              className="bg-white"
+            >
+              <CardContent className="p-5">
+                <div className="flex justify-between items-start mb-3">
+                  <Skeleton className="h-5 w-1/2" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-4 w-3/4 mb-4" />
+                <Skeleton className="h-2 w-full rounded-full mb-2" />
+                <div className="flex justify-between text-xs">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : activeProjects.length > 0 ? (
           activeProjects.map((project) => (
             <Card 
               key={project.id} 

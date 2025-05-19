@@ -9,13 +9,15 @@ import { PriorityBadge } from "@/components/ui/priority-badge";
 import { Task } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TaskListProps {
   tasks: Task[];
+  isLoading?: boolean;
 }
 
-export function TaskList({ tasks }: TaskListProps) {
+export function TaskList({ tasks, isLoading = false }: TaskListProps) {
   const [, navigate] = useLocation();
 
   // Sort tasks by status (incomplete first) and then by due date
@@ -66,7 +68,22 @@ export function TaskList({ tasks }: TaskListProps) {
       
       <CardContent className="p-5">
         <div className="space-y-4">
-          {sortedTasks.length > 0 ? (
+          {isLoading ? (
+            // Loading skeleton
+            Array.from({ length: 3 }).map((_, index) => (
+              <div 
+                key={`skeleton-${index}`} 
+                className="flex items-center p-3 bg-secondary rounded-lg"
+              >
+                <Skeleton className="h-4 w-4 mr-3 rounded-sm" />
+                <div className="ml-1 flex-1">
+                  <Skeleton className="h-4 w-3/4 mb-2" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+                <Skeleton className="h-6 w-16 rounded-full" />
+              </div>
+            ))
+          ) : sortedTasks.length > 0 ? (
             sortedTasks.map((task) => (
               <div 
                 key={task.id} 
