@@ -142,11 +142,21 @@ export default function Tasks() {
   
   const onTaskSelect = (task: Task) => {
     setSelectedTask(task);
+    // Ensure task status is one of the valid enum values
+    const status = (task.status === "TODO" || task.status === "IN_PROGRESS" || task.status === "COMPLETED") 
+      ? task.status 
+      : "TODO";
+    
+    // Ensure priority is one of the valid enum values
+    const priority = (task.priority === "LOW" || task.priority === "MEDIUM" || task.priority === "HIGH")
+      ? task.priority
+      : "MEDIUM";
+      
     form.reset({
       title: task.title,
       description: task.description || "",
-      status: task.status,
-      priority: task.priority,
+      status: status as "TODO" | "IN_PROGRESS" | "COMPLETED",
+      priority: priority as "LOW" | "MEDIUM" | "HIGH",
       dueDate: task.dueDate ? new Date(task.dueDate) : null,
       projectId: task.projectId,
     });
@@ -200,9 +210,12 @@ export default function Tasks() {
                     <Plus className="h-4 w-4" /> New Task
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent aria-describedby="task-dialog-description">
                   <DialogHeader>
                     <DialogTitle>Create New Task</DialogTitle>
+                    <p id="task-dialog-description" className="text-sm text-muted-foreground">
+                      Add a new task to your productivity list.
+                    </p>
                   </DialogHeader>
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onCreateSubmit)} className="space-y-4">
