@@ -6,12 +6,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TagBadge } from "@/components/ui/tag-badge";
 import { Note, Tag } from "@shared/schema";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 interface NoteListProps {
   notes: Note[];
+  isLoading?: boolean;
 }
 
-export function NoteList({ notes }: NoteListProps) {
+export function NoteList({ notes, isLoading = false }: NoteListProps) {
   const [, navigate] = useLocation();
   
   const { data: tags } = useQuery<Tag[]>({
@@ -45,7 +48,29 @@ export function NoteList({ notes }: NoteListProps) {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {recentNotes.length > 0 ? (
+        {isLoading ? (
+          // Loading skeleton
+          Array.from({ length: 3 }).map((_, index) => (
+            <Card 
+              key={`skeleton-${index}`} 
+              className="bg-white"
+            >
+              <CardContent className="p-5">
+                <Skeleton className="h-5 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-4 w-4/5 mb-3" />
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-1">
+                    <Skeleton className="h-5 w-12 rounded-full" />
+                    <Skeleton className="h-5 w-12 rounded-full" />
+                  </div>
+                  <Skeleton className="h-3 w-12" />
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : recentNotes.length > 0 ? (
           recentNotes.map((note) => (
             <Card 
               key={note.id} 
