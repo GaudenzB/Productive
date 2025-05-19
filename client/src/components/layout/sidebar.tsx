@@ -52,23 +52,22 @@ export function Sidebar() {
             const isActive = location === item.href;
             const Icon = item.icon;
             return (
-              <Link 
-                key={item.name}
-                href={item.href}
-              >
-                <a className={cn(
-                  "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors",
-                  isActive 
-                    ? "bg-secondary text-primary" 
-                    : "text-foreground hover:bg-secondary/50"
-                )}>
-                  <Icon className={cn(
-                    "h-5 w-5 mr-3",
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  )} />
-                  {item.name}
-                </a>
-              </Link>
+              <div key={item.name} className="w-full">
+                <Link href={item.href}>
+                  <div className={cn(
+                    "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors cursor-pointer",
+                    isActive 
+                      ? "bg-secondary text-primary" 
+                      : "text-foreground hover:bg-secondary/50"
+                  )}>
+                    <Icon className={cn(
+                      "h-5 w-5 mr-3",
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    )} />
+                    {item.name}
+                  </div>
+                </Link>
+              </div>
             );
           })}
         </nav>

@@ -336,7 +336,7 @@ export default function Tasks() {
                               <FormLabel>Project</FormLabel>
                               <Select
                                 onValueChange={field.onChange}
-                                value={field.value || ""}
+                                value={field.value || "none"}
                               >
                                 <FormControl>
                                   <SelectTrigger>
@@ -344,7 +344,7 @@ export default function Tasks() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="">None</SelectItem>
+                                  <SelectItem value="none">None</SelectItem>
                                   {projects?.map((project) => (
                                     <SelectItem key={project.id} value={project.id}>
                                       {project.title}
@@ -578,7 +578,7 @@ export default function Tasks() {
                                           <FormLabel>Project</FormLabel>
                                           <Select
                                             onValueChange={field.onChange}
-                                            value={field.value || ""}
+                                            value={field.value || "none"}
                                           >
                                             <FormControl>
                                               <SelectTrigger>
@@ -586,7 +586,7 @@ export default function Tasks() {
                                               </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                              <SelectItem value="">None</SelectItem>
+                                              <SelectItem value="none">None</SelectItem>
                                               {projects?.map((project) => (
                                                 <SelectItem key={project.id} value={project.id}>
                                                   {project.title}
