@@ -2,14 +2,18 @@ import { db } from '../common/db';
 import { notes } from '@shared/schema';
 import { Note, InsertNote } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { desc } from 'drizzle-orm/pg-core';
 import { NotFoundError } from '../common/error.middleware';
 import { v4 as uuidv4 } from 'uuid';
 
 export class NoteService {
   async getNotes(userId: string): Promise<Note[]> {
-    return db.select().from(notes).where(eq(notes.userId, userId))
-      .orderBy(desc(notes.createdAt));
+    // First get all notes for the user
+    const userNotes = await db.select().from(notes).where(eq(notes.userId, userId));
+    
+    // Then sort them manually by createdAt in descending order
+    return userNotes.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   }
 
   async getNote(id: string): Promise<Note> {
