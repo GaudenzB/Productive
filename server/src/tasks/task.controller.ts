@@ -11,10 +11,12 @@ export class TaskController {
   
   getTasks = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) {
+      // Ensure the user is authenticated
+      if (!req.user || !req.isAuthenticated()) {
         return next(new UnauthorizedError());
       }
       
+      // Access the id safely through Express.User interface from passport
       const tasks = await this.taskService.getTasks(req.user.id);
       res.json(tasks);
     } catch (error) {
@@ -24,7 +26,8 @@ export class TaskController {
   
   getTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) {
+      // Ensure the user is authenticated
+      if (!req.user || !req.isAuthenticated()) {
         return next(new UnauthorizedError());
       }
       
@@ -43,7 +46,8 @@ export class TaskController {
   
   createTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) {
+      // Ensure the user is authenticated
+      if (!req.user || !req.isAuthenticated()) {
         return next(new UnauthorizedError());
       }
       
