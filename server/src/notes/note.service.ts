@@ -2,6 +2,7 @@ import { db } from '../common/db';
 import { notes } from '@shared/schema';
 import { Note, InsertNote } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { desc } from 'drizzle-orm/pg-core';
 import { NotFoundError } from '../common/error.middleware';
 import { v4 as uuidv4 } from 'uuid';
 
