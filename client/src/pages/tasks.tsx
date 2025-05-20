@@ -6,7 +6,7 @@ import { Header } from "@/components/layout/header";
 import { MobileMenu } from "@/components/layout/mobile-menu";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +38,11 @@ export default function Tasks() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { toast } = useToast();
   
   // Queries
@@ -197,12 +202,141 @@ export default function Tasks() {
             <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto mt-4 md:mt-0">
               <div className="relative flex-1 md:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search tasks..." className="pl-8" />
+                <Input 
+                  placeholder="Search tasks..." 
+                  className="pl-8" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Search tasks"
+                />
               </div>
               
-              <Button variant="outline" className="gap-1">
-                <Filter className="h-4 w-4" /> Filter
-              </Button>
+              <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-1">
+                    <Filter className="h-4 w-4" /> Filter
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md" aria-describedby="filter-dialog-description">
+                  <DialogHeader>
+                    <DialogTitle>Filter Tasks</DialogTitle>
+                    <p id="filter-dialog-description" className="text-sm text-muted-foreground">
+                      Filter your tasks by status, priority, and project.
+                    </p>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Status</h4>
+                      <div className="flex flex-wrap gap-2">
+                        <Button 
+                          variant={statusFilter === null ? "default" : "outline"} 
+                          size="sm" 
+                          onClick={() => setStatusFilter(null)}
+                        >
+                          All
+                        </Button>
+                        <Button 
+                          variant={statusFilter === "TODO" ? "default" : "outline"} 
+                          size="sm" 
+                          onClick={() => setStatusFilter("TODO")}
+                        >
+                          To Do
+                        </Button>
+                        <Button 
+                          variant={statusFilter === "IN_PROGRESS" ? "default" : "outline"} 
+                          size="sm" 
+                          onClick={() => setStatusFilter("IN_PROGRESS")}
+                        >
+                          In Progress
+                        </Button>
+                        <Button 
+                          variant={statusFilter === "COMPLETED" ? "default" : "outline"} 
+                          size="sm" 
+                          onClick={() => setStatusFilter("COMPLETED")}
+                        >
+                          Completed
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Priority</h4>
+                      <div className="flex flex-wrap gap-2">
+                        <Button 
+                          variant={priorityFilter === null ? "default" : "outline"} 
+                          size="sm" 
+                          onClick={() => setPriorityFilter(null)}
+                        >
+                          All
+                        </Button>
+                        <Button 
+                          variant={priorityFilter === "HIGH" ? "default" : "outline"} 
+                          size="sm" 
+                          onClick={() => setPriorityFilter("HIGH")}
+                        >
+                          High
+                        </Button>
+                        <Button 
+                          variant={priorityFilter === "MEDIUM" ? "default" : "outline"} 
+                          size="sm" 
+                          onClick={() => setPriorityFilter("MEDIUM")}
+                        >
+                          Medium
+                        </Button>
+                        <Button 
+                          variant={priorityFilter === "LOW" ? "default" : "outline"} 
+                          size="sm" 
+                          onClick={() => setPriorityFilter("LOW")}
+                        >
+                          Low
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {projects && projects.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Project</h4>
+                        <div className="flex flex-wrap gap-2">
+                          <Button 
+                            variant={projectFilter === null ? "default" : "outline"} 
+                            size="sm" 
+                            onClick={() => setProjectFilter(null)}
+                          >
+                            All
+                          </Button>
+                          {projects.map((project) => (
+                            <Button 
+                              key={project.id}
+                              variant={projectFilter === project.id ? "default" : "outline"} 
+                              size="sm" 
+                              onClick={() => setProjectFilter(project.id)}
+                            >
+                              {project.title}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => {
+                        setStatusFilter(null);
+                        setPriorityFilter(null);
+                        setProjectFilter(null);
+                        setIsFilterOpen(false);
+                      }}
+                    >
+                      Reset Filters
+                    </Button>
+                    <Button type="button" onClick={() => setIsFilterOpen(false)}>
+                      Apply Filters
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
               
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
