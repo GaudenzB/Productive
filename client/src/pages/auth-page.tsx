@@ -53,9 +53,14 @@ export default function AuthPage() {
   }, [user, navigate]);
 
   function onLoginSubmit(values: z.infer<typeof loginSchema>) {
+    console.log("Login form submission:", values);
     loginMutation.mutate(values, {
       onSuccess: () => {
+        console.log("Login success in form handler");
         navigate('/');
+      },
+      onError: (error) => {
+        console.error("Login error in form handler:", error);
       }
     });
   }
