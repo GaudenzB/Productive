@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { setupVite, serveStatic, log } from "./vite";
 import { createServer } from "http";
 import { registerRoutes } from "./routes";
+import { errorHandler } from "./middleware/error-handler";
 
 const app = express();
 app.use(express.json());
@@ -29,21 +30,8 @@ app.use((req, res, next) => {
   // Register routes from routes.ts
   await registerRoutes(app);
 
-  // Global error handler
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({
-      error: {
-        code: status,
-        message
-      }
-    });
-    
-    log(`Error: ${message}`);
-    console.error(err);
-  });
+  // Global error handler with improved error responses
+  app.use(errorHandler);
 
   // Setup Vite for frontend
   if (app.get("env") === "development") {

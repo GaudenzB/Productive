@@ -123,16 +123,26 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    if (!req.body.email || !req.body.password) {
+      return next(new BadRequestError("Email and password are required"));
+    }
+    
+    passport.authenticate("local", (err: Error, user: User, info: {message: string}) => {
       if (err) return next(err);
-      if (!user) return res.status(401).json({ message: info?.message || "Invalid email or password" });
+      if (!user) return next(new UnauthorizedError(info?.message || "Invalid email or password"));
       
       req.login(user, (loginErr) => {
         if (loginErr) return next(loginErr);
         
-        // Remove password from response
-        const userResponse = { ...user };
-        delete userResponse.password;
+        // Create a safe user response object without sensitive data
+        const userResponse = {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
+        };
         
         return res.status(200).json(userResponse);
       });
@@ -146,13 +156,25 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    // Remove password from response
-    const userResponse = { ...req.user };
-    delete userResponse.password;
-    
-    res.json(userResponse);
+  app.get("/api/user", (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        throw new UnauthorizedError("You must be logged in to access this resource");
+      }
+      
+      // Create a safe user response object without sensitive data
+      const userResponse = {
+        id: req.user.id,
+        email: req.user.email,
+        name: req.user.name,
+        image: req.user.image,
+        createdAt: req.user.createdAt,
+        updatedAt: req.user.updatedAt
+      };
+      
+      res.json(userResponse);
+    } catch (error) {
+      next(error);
+    }
   });
 }
