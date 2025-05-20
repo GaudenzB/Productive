@@ -104,10 +104,26 @@ export function KanbanBoard({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {Object.values(columns).map(column => (
             <div key={column.id} className="flex flex-col">
-              <div className="bg-card rounded-t-md p-3 border border-b-0 shadow-sm">
-                <h3 className="font-medium text-sm flex items-center">
-                  {column.title} 
-                  <span className="ml-2 text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">
+              <div className={cn(
+                "rounded-t-md p-3 border border-b-0 shadow-sm",
+                column.id === "TODO" && "bg-blue-50 dark:bg-blue-950",
+                column.id === "IN_PROGRESS" && "bg-amber-50 dark:bg-amber-950",
+                column.id === "COMPLETED" && "bg-green-50 dark:bg-green-950",
+              )}>
+                <h3 className="font-medium text-sm flex items-center justify-between">
+                  <div className="flex items-center">
+                    {column.id === "TODO" && (
+                      <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                    )}
+                    {column.id === "IN_PROGRESS" && (
+                      <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-2"></span>
+                    )}
+                    {column.id === "COMPLETED" && (
+                      <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                    )}
+                    {column.title}
+                  </div>
+                  <span className="text-xs font-semibold bg-secondary px-2 py-1 rounded-full">
                     {column.taskIds.length}
                   </span>
                 </h3>
@@ -118,13 +134,34 @@ export function KanbanBoard({
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className={cn(
-                      "flex-1 min-h-[200px] p-2 border rounded-b-md space-y-2 transition-colors",
-                      snapshot.isDraggingOver ? "bg-secondary" : "bg-card/50"
+                      "flex-1 min-h-[300px] p-3 border rounded-b-md space-y-3 transition-all",
+                      column.id === "TODO" && "border-blue-200 dark:border-blue-800",
+                      column.id === "IN_PROGRESS" && "border-amber-200 dark:border-amber-800",
+                      column.id === "COMPLETED" && "border-green-200 dark:border-green-800",
+                      snapshot.isDraggingOver && column.id === "TODO" && "bg-blue-50/70 dark:bg-blue-900/30",
+                      snapshot.isDraggingOver && column.id === "IN_PROGRESS" && "bg-amber-50/70 dark:bg-amber-900/30",
+                      snapshot.isDraggingOver && column.id === "COMPLETED" && "bg-green-50/70 dark:bg-green-900/30",
+                      !snapshot.isDraggingOver && "bg-card/50"
                     )}
                   >
                     {column.taskIds.length === 0 ? (
-                      <div className="flex items-center justify-center h-full">
-                        <p className="text-sm text-muted-foreground">No tasks</p>
+                      <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                        <div className={cn(
+                          "w-12 h-12 rounded-full mb-3 flex items-center justify-center",
+                          column.id === "TODO" && "bg-blue-100 dark:bg-blue-900/30",
+                          column.id === "IN_PROGRESS" && "bg-amber-100 dark:bg-amber-900/30",
+                          column.id === "COMPLETED" && "bg-green-100 dark:bg-green-900/30"
+                        )}>
+                          {column.id === "TODO" && <span className="text-2xl">📋</span>}
+                          {column.id === "IN_PROGRESS" && <span className="text-2xl">⚙️</span>}
+                          {column.id === "COMPLETED" && <span className="text-2xl">✅</span>}
+                        </div>
+                        <p className="text-sm font-medium mb-1">No {column.title} Tasks</p>
+                        <p className="text-xs text-muted-foreground max-w-[200px]">
+                          {column.id === "TODO" && "Drag tasks here or create new tasks to get started"}
+                          {column.id === "IN_PROGRESS" && "Move tasks here when you start working on them"}
+                          {column.id === "COMPLETED" && "Complete tasks will appear here"}
+                        </p>
                       </div>
                     ) : (
                       column.taskIds.map((taskId, index) => {
@@ -139,8 +176,11 @@ export function KanbanBoard({
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
                                 className={cn(
-                                  "mb-2 hover:shadow-md transition-shadow",
-                                  snapshot.isDragging && "shadow-lg",
+                                  "mb-2 hover:shadow-md transition-all border-l-4 cursor-grab",
+                                  task.priority === "HIGH" && "border-l-red-400",
+                                  task.priority === "MEDIUM" && "border-l-amber-400",
+                                  task.priority === "LOW" && "border-l-green-400",
+                                  snapshot.isDragging && "shadow-lg scale-[1.02] cursor-grabbing",
                                   task.status === "COMPLETED" && "opacity-70"
                                 )}
                               >
@@ -155,7 +195,7 @@ export function KanbanBoard({
                                     />
                                     <div className="flex-1">
                                       <div className="flex justify-between items-start">
-                                        <div>
+                                        <div className="flex-1 pr-2">
                                           <h3 className={cn(
                                             "font-medium text-sm",
                                             task.status === "COMPLETED" && "line-through text-muted-foreground"
@@ -171,34 +211,52 @@ export function KanbanBoard({
                                         <PriorityBadge priority={task.priority} size="small" />
                                       </div>
                                       
+                                      {/* Project indicator if available */}
+                                      {task.projectId && projects && (
+                                        <div className="mt-2">
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-secondary">
+                                            {projects.find(p => p.id === task.projectId)?.title || 'Project'}
+                                          </span>
+                                        </div>
+                                      )}
+                                      
                                       <div className="flex flex-col gap-1 mt-2">
+                                        {/* Tags section with hover effects */}
                                         <div className="flex flex-wrap gap-1">
                                           {getTaskTags(task.id).map(tag => (
                                             <TagBadge 
                                               key={tag.id} 
                                               name={tag.name} 
                                               color={tag.color} 
-                                              className="text-[10px] px-1.5 py-0"
+                                              className="text-[10px] px-1.5 py-0 hover:opacity-80 transition-opacity"
                                             />
                                           ))}
                                         </div>
                                         
-                                        <div className="flex justify-between items-center mt-1">
-                                          <div className="flex items-center text-xs text-muted-foreground">
+                                        <div className="flex justify-between items-center mt-2 pt-1 border-t border-border/50">
+                                          <div className="flex items-center text-xs">
                                             {task.dueDate && (
-                                              <span className="text-[10px]">
+                                              <span className={cn(
+                                                "text-[10px] px-1.5 py-0.5 rounded",
+                                                new Date(task.dueDate) < new Date() && task.status !== "COMPLETED" 
+                                                  ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" 
+                                                  : "text-muted-foreground"
+                                              )}>
                                                 {format(new Date(task.dueDate), "MMM d")}
                                               </span>
                                             )}
                                           </div>
-                                          <Button 
-                                            variant="ghost" 
-                                            size="icon"
-                                            className="h-6 w-6"
-                                            onClick={() => onTaskSelect(task)}
-                                          >
-                                            <PenLine className="h-3 w-3" />
-                                          </Button>
+                                          
+                                          <div className="flex gap-1">
+                                            <Button 
+                                              variant="ghost" 
+                                              size="icon"
+                                              className="h-6 w-6 hover:bg-secondary"
+                                              onClick={() => onTaskSelect(task)}
+                                            >
+                                              <PenLine className="h-3 w-3" />
+                                            </Button>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
