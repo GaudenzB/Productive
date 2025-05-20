@@ -364,22 +364,22 @@ export function ErrorMonitoringDashboard() {
                           <div className="flex items-center gap-2">
                             <BarChart3 className="h-4 w-4 text-primary" />
                             <h3 className="font-medium">{pattern.patternName}</h3>
-                            <Badge 
+                            <CustomBadge 
                               variant={pattern.severity === ErrorSeverity.CRITICAL || pattern.severity === ErrorSeverity.ERROR 
                                 ? "destructive" 
                                 : "outline"}
                             >
                               {pattern.count}x
-                            </Badge>
+                            </CustomBadge>
                           </div>
-                          <Badge 
+                          <CustomBadge 
                             variant={
                               pattern.count > 5 ? "destructive" : 
                               pattern.count > 3 ? "warning" : "outline"
                             }
                           >
                             {pattern.count > 5 ? "High" : pattern.count > 3 ? "Medium" : "Low"} Frequency
-                          </Badge>
+                          </CustomBadge>
                         </div>
                         <Separator className="my-2" />
                         <div className="space-y-2">
