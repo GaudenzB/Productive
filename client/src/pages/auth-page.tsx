@@ -54,13 +54,12 @@ export default function AuthPage() {
 
   function onLoginSubmit(values: z.infer<typeof loginSchema>) {
     console.log("Login form submission:", values);
+    console.log("Login attempt with:", { email: values.email });
     loginMutation.mutate(values, {
       onSuccess: (userData) => {
         console.log("Login success in form handler");
-        // Force a small delay to ensure the state is updated
-        setTimeout(() => {
-          navigate('/');
-        }, 100);
+        // Navigate immediately after login success
+        navigate('/');
       },
       onError: (error) => {
         console.error("Login error in form handler:", error);
