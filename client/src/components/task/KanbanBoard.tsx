@@ -35,12 +35,8 @@ export function KanbanBoard({
   onTaskSelect,
   getTaskTags
 }: KanbanBoardProps) {
-  // Group tasks by status
-  const columns: Record<string, KanbanColumn> = {
-    'TODO': { id: 'TODO', title: 'To Do', taskIds: [] },
-    'IN_PROGRESS': { id: 'IN_PROGRESS', title: 'In Progress', taskIds: [] },
-    'COMPLETED': { id: 'COMPLETED', title: 'Completed', taskIds: [] }
-  };
+  // Helper function to get task by id
+  const getTask = (id: string) => tasks.find(t => t.id === id);
 
   // Function to check if task is due today
   const isToday = (date: Date) => {
@@ -60,10 +56,14 @@ export function KanbanBoard({
     
     return date >= weekStart && date <= weekEnd;
   };
-
-  // Get task by id helper function
-  const getTask = (id: string) => tasks.find(t => t.id === id);
   
+  // Group tasks by status
+  const columns: Record<string, KanbanColumn> = {
+    'TODO': { id: 'TODO', title: 'To Do', taskIds: [] },
+    'IN_PROGRESS': { id: 'IN_PROGRESS', title: 'In Progress', taskIds: [] },
+    'COMPLETED': { id: 'COMPLETED', title: 'Completed', taskIds: [] }
+  };
+
   // Add tasks to appropriate columns
   tasks.forEach(task => {
     const status = task.status;
@@ -131,8 +131,6 @@ export function KanbanBoard({
     // This creates a more responsive experience even if the server call is still processing
     const task = tasks.find(t => t.id === taskId);
     if (task) {
-      const updatedTask = {...task, status: newStatus};
-      
       // Find task by ID and update its status (optimistic update)
       const sourceColumn = columns[source.droppableId];
       const destinationColumn = columns[destination.droppableId];
@@ -146,9 +144,6 @@ export function KanbanBoard({
       }
     }
   };
-
-  // Get task by id
-  const getTask = (id: string) => tasks.find(t => t.id === id);
 
   return (
     <div className="mt-6">
@@ -183,7 +178,6 @@ export function KanbanBoard({
                         className="h-6 w-6 rounded-full hover:bg-secondary/80"
                         onClick={() => {
                           // This is a placeholder for sorting functionality
-                          // Will be implemented with actual feature
                         }}
                       >
                         <svg 
@@ -248,108 +242,10 @@ export function KanbanBoard({
                         const task = getTask(taskId);
                         if (!task) return null;
                         
-                        return (
-                          <Draggable key={taskId} draggableId={taskId} index={index}>
-                            {(provided, snapshot) => (
-                              <Card
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={cn(
-                                  "mb-2 hover:shadow-md hover:translate-y-[-2px] transition-all border-l-4 cursor-grab",
-                                  task.priority === "HIGH" && "border-l-red-400",
-                                  task.priority === "MEDIUM" && "border-l-amber-400",
-                                  task.priority === "LOW" && "border-l-green-400",
-                                  snapshot.isDragging && "shadow-lg scale-[1.02] cursor-grabbing border-2 border-primary/30",
-                                  task.status === "COMPLETED" && "opacity-70"
-                                )}
-                              >
-                                <CardContent className="p-3">
-                                  <div className="flex items-start gap-2">
-                                    <Checkbox 
-                                      checked={task.status === "COMPLETED"} 
-                                      onCheckedChange={(checked) => 
-                                        onTaskStatusChange(task.id, checked ? "COMPLETED" : "TODO")
-                                      }
-                                      className="mt-1"
-                                    />
-                                    <div className="flex-1">
-                                      <div className="flex justify-between items-start">
-                                        <div className="flex-1 pr-2">
-                                          <h3 className={cn(
-                                            "font-medium text-sm",
-                                            task.status === "COMPLETED" && "line-through text-muted-foreground"
-                                          )}>
-                                            {task.title}
-                                          </h3>
-                                          {task.description && (
-                                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                              {task.description}
-                                            </p>
-                                          )}
-                                        </div>
-                                        <PriorityBadge priority={task.priority} size="small" />
-                                      </div>
-                                      
-                                      {/* Project indicator if available */}
-                                      {task.projectId && projects && (
-                                        <div className="mt-2">
-                                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-secondary">
-                                            {projects.find(p => p.id === task.projectId)?.title || 'Project'}
-                                          </span>
-                                        </div>
-                                      )}
-                                      
-                                      <div className="flex flex-col gap-1 mt-2">
-                                        {/* Tags section with hover effects */}
-                                        <div className="flex flex-wrap gap-1">
-                                          {getTaskTags(task.id).map(tag => (
-                                            <TagBadge 
-                                              key={tag.id} 
-                                              name={tag.name} 
-                                              color={tag.color} 
-                                              className="text-[10px] px-1.5 py-0 hover:opacity-80 transition-opacity"
-                                            />
-                                          ))}
-                                        </div>
-                                        
-                                        <div className="flex justify-between items-center mt-2 pt-1 border-t border-border/50">
-                                          <div className="flex items-center text-xs">
-                                            {task.dueDate && (
-                                              <span className={cn(
-                                                "text-[10px] px-1.5 py-0.5 rounded",
-                                                new Date(task.dueDate) < new Date() && task.status !== "COMPLETED" 
-                                                  ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" 
-                                                  : "text-muted-foreground"
-                                              )}>
-                                                {format(new Date(task.dueDate), "MMM d")}
-                                              </span>
-                                            )}
-                                          </div>
-                                          
-                                          <div className="flex gap-1">
-                                            <Button 
-                                              variant="ghost" 
-                                              size="icon"
-                                              className="h-6 w-6 hover:bg-secondary"
-                                              onClick={() => onTaskSelect(task)}
-                                            >
-                                              <PenLine className="h-3 w-3" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            )}
-                          </Draggable>
-                        );
-                      })
-                    )}
-                        const task = getTask(taskId);
-                        if (!task) return null;
+                        // Calculate if task is overdue
+                        const isOverdue = task.dueDate && 
+                                         new Date(task.dueDate) < new Date() && 
+                                         task.status !== "COMPLETED";
                         
                         return (
                           <Draggable key={taskId} draggableId={taskId} index={index}>
@@ -363,6 +259,7 @@ export function KanbanBoard({
                                   task.priority === "HIGH" && "border-l-red-400",
                                   task.priority === "MEDIUM" && "border-l-amber-400",
                                   task.priority === "LOW" && "border-l-green-400",
+                                  isOverdue && "border-red-500 dark:border-red-700",
                                   snapshot.isDragging && "shadow-lg scale-[1.02] cursor-grabbing border-2 border-primary/30",
                                   task.status === "COMPLETED" && "opacity-70"
                                 )}
@@ -421,7 +318,7 @@ export function KanbanBoard({
                                             {task.dueDate && (
                                               <span className={cn(
                                                 "text-[10px] px-1.5 py-0.5 rounded",
-                                                new Date(task.dueDate) < new Date() && task.status !== "COMPLETED" 
+                                                isOverdue
                                                   ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" 
                                                   : "text-muted-foreground"
                                               )}>
