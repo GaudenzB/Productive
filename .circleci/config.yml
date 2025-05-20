@@ -1,0 +1,86 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@5.1.0
+  docker: circleci/docker@2.2.0
+
+jobs:
+  test:
+    docker:
+      - image: cimg/node:20.10
+      - image: cimg/postgres:14.5
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: productitask_test
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          name: Run tests
+          command: npx jest --coverage
+          environment:
+            NODE_ENV: test
+            DATABASE_URL: postgres://postgres:postgres@localhost:5432/productitask_test
+            SESSION_SECRET: test_session_secret
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: coverage
+
+  build:
+    docker:
+      - image: cimg/node:20.10
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          name: Build application
+          command: npm run build
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+            - client/dist
+            - package.json
+            - package-lock.json
+
+  deploy:
+    docker:
+      - image: cimg/node:20.10
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - setup_remote_docker:
+          version: 20.10.14
+      - docker/check
+      - docker/build:
+          image: productitask
+          tag: latest
+      - run:
+          name: Deploy to production
+          command: |
+            echo "Deployment would happen here"
+            # Example deploy command:
+            # ssh $DEPLOY_USER@$DEPLOY_HOST "./deploy-productitask.sh"
+
+workflows:
+  version: 2
+  test-build-deploy:
+    jobs:
+      - test
+      - build:
+          requires:
+            - test
+          filters:
+            branches:
+              only: main
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: main
