@@ -80,6 +80,27 @@ export default function Tasks() {
     return tags.filter(tag => taskTagIds.includes(tag.id));
   };
 
+  // Create task tag mutation
+  const createTaskTagMutation = useMutation({
+    mutationFn: async ({ taskId, tagId }: { taskId: string; tagId: string }) => {
+      const res = await apiRequest("POST", "/api/task-tags", { 
+        taskId, 
+        tagId 
+      } as InsertTaskTag);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/task-tags'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to add tag to task",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Filter tasks based on search and filters
   const filteredTasks = tasks ? tasks.filter(task => {
     // Match search query
@@ -127,6 +148,15 @@ export default function Tasks() {
     onSuccess: (newTask) => {
       // Update the cache with the new task
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      
+      // If there are selected tags, add them to the task
+      const tagIds = form.getValues().tagIds;
+      if (tagIds && tagIds.length > 0 && newTask && newTask.id) {
+        tagIds.forEach(tagId => {
+          createTaskTagMutation.mutate({ taskId: newTask.id, tagId });
+        });
+      }
+      
       // Additional success handling
       setIsCreateDialogOpen(false);
       form.reset({
@@ -136,6 +166,7 @@ export default function Tasks() {
         priority: "MEDIUM",
         dueDate: null,
         projectId: null,
+        tagIds: [],
       });
       toast({
         title: "Task created",
@@ -212,7 +243,21 @@ export default function Tasks() {
   
   const onUpdateSubmit = (data: z.infer<typeof taskFormSchema>) => {
     if (selectedTask) {
-      updateTaskMutation.mutate({ id: selectedTask.id, data });
+      // Update basic task data first
+      updateTaskMutation.mutate({ 
+        id: selectedTask.id, 
+        data: {
+          title: data.title,
+          description: data.description,
+          status: data.status,
+          priority: data.priority,
+          dueDate: data.dueDate,
+          projectId: data.projectId
+        } 
+      });
+      
+      // Handle tags separately through the tag-task relationship
+      // This would require additional API endpoints to manage task-tag relationships
     }
   };
   
@@ -228,6 +273,13 @@ export default function Tasks() {
       ? task.priority
       : "MEDIUM";
       
+    // Get task tags if available
+    const taskTagIds = taskTags 
+      ? taskTags
+          .filter(tt => tt.taskId === task.id)
+          .map(tt => tt.tagId)
+      : [];
+      
     form.reset({
       title: task.title,
       description: task.description || "",
@@ -235,6 +287,7 @@ export default function Tasks() {
       priority: priority as "LOW" | "MEDIUM" | "HIGH",
       dueDate: task.dueDate ? new Date(task.dueDate) : null,
       projectId: task.projectId,
+      tagIds: taskTagIds,
     });
   };
   
@@ -281,6 +334,26 @@ export default function Tasks() {
                   aria-label="Search tasks"
                 />
               </div>
+              
+              {/* Tag filter popover */}
+              {tags && tags.length > 0 && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="gap-1">
+                      <TagIcon className="h-4 w-4" /> 
+                      {tagFilter ? tags.find(t => t.id === tagFilter)?.name || "Tags" : "Tags"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-60 p-2">
+                    <TagFilter 
+                      tags={tags}
+                      selectedTagId={tagFilter}
+                      onSelectTag={setTagFilter}
+                      onCreateTag={() => setIsTagDialogOpen(true)}
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
               
               <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                 <DialogTrigger asChild>
