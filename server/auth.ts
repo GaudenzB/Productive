@@ -6,6 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User } from "@shared/schema";
+import { BadRequestError, NotFoundError, UnauthorizedError } from "./errors";
 
 declare global {
   namespace Express {
@@ -37,10 +38,13 @@ export function setupAuth(app: Express) {
     saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours (reduced from 30 days for better security)
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production"
-    }
+      secure: process.env.NODE_ENV === "production",
+      sameSite: 'lax' // Provides CSRF protection with better UX than 'strict'
+    },
+    name: 'producti.sid', // Custom name instead of default "connect.sid"
+    rolling: true, // Reset cookie expiration on user activity
   };
 
   app.set("trust proxy", 1);
@@ -83,9 +87,13 @@ export function setupAuth(app: Express) {
     try {
       const { email, password, name } = req.body;
       
+      if (!email || !password) {
+        throw new BadRequestError("Email and password are required");
+      }
+      
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
-        return res.status(400).send("Email already exists");
+        throw new BadRequestError("An account with this email already exists");
       }
 
       const user = await storage.createUser({
@@ -97,9 +105,15 @@ export function setupAuth(app: Express) {
       req.login(user, (err) => {
         if (err) return next(err);
         
-        // Remove password from response
-        const userResponse = { ...user };
-        delete userResponse.password;
+        // Create a safe user response object without sensitive data
+        const userResponse = {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
+        };
         
         res.status(201).json(userResponse);
       });
