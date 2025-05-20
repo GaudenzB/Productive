@@ -6,6 +6,13 @@ import { scrypt, randomBytes, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
 
+// Define error statusCodes for consistency
+const ERROR_STATUS = {
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  UNAUTHORIZED: 401
+};
+
 const scryptAsync = promisify(scrypt);
 
 export class AuthService {
@@ -41,7 +48,7 @@ export class AuthService {
     // Check if user already exists
     const existingUser = await this.getUserByEmail(userData.email);
     if (existingUser) {
-      throw new ConflictError('User with this email already exists');
+      throw new Error('User with this email already exists');
     }
 
     // Hash the password
@@ -66,13 +73,13 @@ export class AuthService {
     const user = await this.getUserByEmail(email);
     
     if (!user) {
-      throw new UnauthorizedError('Invalid email or password');
+      throw new Error('Invalid email or password');
     }
     
     const isPasswordValid = await this.comparePasswords(password, user.password);
     
     if (!isPasswordValid) {
-      throw new UnauthorizedError('Invalid email or password');
+      throw new Error('Invalid email or password');
     }
     
     return user;
