@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
-import Tasks from "@/pages/tasks";
+import Tasks from "@/pages/tasks-fixed";
 import Projects from "@/pages/projects";
 import Meetings from "@/pages/meetings";
 import Notes from "@/pages/notes";
