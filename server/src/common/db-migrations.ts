@@ -4,6 +4,7 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import { migrate } from 'drizzle-orm/neon-serverless/migrator';
 import { Pool } from '@neondatabase/serverless';
 import { env } from './env';
+import { sql } from 'drizzle-orm';
 
 /**
  * Run database migrations
