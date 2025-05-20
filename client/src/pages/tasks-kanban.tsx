@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { TabsContent, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TagBadge } from "@/components/ui/tag-badge";
 import { TagSelector } from "@/components/ui/tag-selector";
+import { PriorityBadge } from "@/components/ui/priority-badge";
 import { TagDialog } from "@/components/task/TagDialog";
 import { TagFilter } from "@/components/task/TagFilter";
 import { KanbanBoard } from "@/components/task/KanbanBoard";
