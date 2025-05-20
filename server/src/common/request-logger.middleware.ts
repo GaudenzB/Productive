@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from './logger';
 
-// Add request ID to Express Request interface
+// Type augmentation for the Express Request
 declare global {
   namespace Express {
     interface Request {
@@ -11,6 +11,8 @@ declare global {
     }
   }
 }
+
+// Request ID is now added to Express.Request via the global declaration above
 
 /**
  * Request logger middleware
@@ -57,7 +59,7 @@ export function requestLoggerMiddleware(req: Request, res: Response, next: NextF
     return originalJson.apply(res, [body]);
   };
   
-  res.end = function (chunk?: any, encoding?: string): Response {
+  res.end = function (chunk?: any, encoding?: any): Response {
     // Calculate response time
     const responseTime = Date.now() - (req.startTime || Date.now());
     
@@ -97,10 +99,24 @@ export function requestLoggerMiddleware(req: Request, res: Response, next: NextF
     }
     
     // Log the response
-    logger[logLevel](`${method} ${originalUrl} ${statusCode} ${responseTime}ms`, logContext);
+    const logMessage = `${method} ${originalUrl} ${statusCode} ${responseTime}ms`;
     
-    // Call original end method
-    return originalEnd.apply(res, arguments as any);
+    if (logLevel === 'error') {
+      logger.error(logMessage, new Error(`HTTP ${statusCode}`), logContext);
+    } else if (logLevel === 'warn') {
+      logger.warn(logMessage, logContext);
+    } else {
+      logger.info(logMessage, logContext);
+    }
+    
+    // Call original end method with the correct arguments
+    if (typeof chunk !== 'undefined') {
+      if (typeof encoding !== 'undefined') {
+        return originalEnd.apply(res, [chunk, encoding]);
+      }
+      return originalEnd.apply(res, [chunk]);
+    }
+    return originalEnd.apply(res, []);
   };
   
   next();

@@ -10,96 +10,43 @@ import {
   insertNoteSchema,
   insertTagSchema
 } from "@shared/schema";
+import { setupSwagger } from "./src/common/swagger";
+import { taskRouter } from "./src/tasks/task.router";
+import { requestLoggerMiddleware } from "./src/common/request-logger.middleware";
+import { errorHandlerMiddleware } from "./src/common/error.middleware";
 
-// Import our feature routers - we'll keep this commented until we're ready to switch over
-// import taskRouter from './src/tasks/task.router';
+// Import remaining feature routers once they're implemented
 // import projectRouter from './src/projects/project.router';
 // import meetingRouter from './src/meetings/meeting.router';
 // import noteRouter from './src/notes/note.router';
 // import tagRouter from './src/tags/tag.router';
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // When ready to switch to new architecture, uncomment these lines:
-  // app.use('/api/tasks', taskRouter);
+  // Set up request logging
+  app.use(requestLoggerMiddleware);
+  
+  // Set up authentication routes
+  setupAuth(app);
+  
+  // Set up API documentation
+  setupSwagger(app);
+  
+  // Set up API routes - gradually migrate to the new architecture
+  // New architecture for tasks
+  app.use('/api/tasks', taskRouter);
+  
+  // Error handling middleware should be registered after all routes
+  app.use(errorHandlerMiddleware);
+  
+  // For now, continue with the existing implementation for other routes
+  // These will be migrated to the new architecture in future iterations:
   // app.use('/api/projects', projectRouter);
   // app.use('/api/meetings', meetingRouter);
   // app.use('/api/notes', noteRouter);
   // app.use('/api/tags', tagRouter);
-  
-  // For now, continue with the existing implementation:
-  // Set up authentication routes
-  setupAuth(app);
 
-  // Tasks Routes
-  app.get("/api/tasks", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    const tasks = await storage.getTasks(req.user.id);
-    res.json(tasks);
-  });
-
-  app.post("/api/tasks", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    try {
-      const data = insertTaskSchema.parse({
-        ...req.body,
-        userId: req.user.id
-      });
-      
-      const task = await storage.createTask(data);
-      res.status(201).json(task);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Validation error", errors: error.errors });
-      }
-      res.status(500).json({ message: "An error occurred while creating task" });
-    }
-  });
-
-  app.patch("/api/tasks/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    const taskId = req.params.id;
-    const task = await storage.getTask(taskId);
-    
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-    
-    if (task.userId !== req.user.id) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-    
-    try {
-      const updatedTask = await storage.updateTask(taskId, req.body);
-      res.json(updatedTask);
-    } catch (error) {
-      res.status(500).json({ message: "An error occurred while updating task" });
-    }
-  });
-
-  app.delete("/api/tasks/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    const taskId = req.params.id;
-    const task = await storage.getTask(taskId);
-    
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-    
-    if (task.userId !== req.user.id) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-    
-    try {
-      await storage.deleteTask(taskId);
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ message: "An error occurred while deleting task" });
-    }
-  });
+  // Tasks Routes - Now handled by taskRouter
+  // The legacy routes have been replaced with the new architecture
 
   // Projects Routes
   app.get("/api/projects", async (req, res) => {
