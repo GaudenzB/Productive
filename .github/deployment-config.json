@@ -1,0 +1,36 @@
+{
+  "environments": {
+    "production": {
+      "name": "Production",
+      "url": "https://productitask.example.com",
+      "requires": ["test", "build"],
+      "auto_deploy": true,
+      "protected_branches": ["main"]
+    },
+    "staging": {
+      "name": "Staging",
+      "url": "https://staging.productitask.example.com",
+      "requires": ["test", "build"],
+      "auto_deploy": true,
+      "protected_branches": ["develop"]
+    }
+  },
+  "deployment_tasks": {
+    "pre_deploy": [
+      "npm run build"
+    ],
+    "post_deploy": [
+      "npm run db:push"
+    ]
+  },
+  "notifications": {
+    "slack": {
+      "channel": "#deployments",
+      "events": ["success", "failure"]
+    },
+    "email": {
+      "recipients": ["team@example.com"],
+      "events": ["failure"]
+    }
+  }
+}
