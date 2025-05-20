@@ -1,12 +1,22 @@
-import React, { useState, useEffect } from "react";
-import { AlertTriangle, AlertCircle, Info, CheckCircle2, RefreshCw, X } from "lucide-react";
+import React from "react";
+import { 
+  AlertTriangle, 
+  AlertCircle, 
+  X, 
+  Terminal, 
+  RotateCw, 
+  CheckCircle2,
+  Clock,
+  FileCode,
+  Info
+} from "lucide-react";
 import { EnhancedError, ErrorSeverity } from "@/lib/error-handling";
 import { 
   analyzeError, 
   getImmediateFixSuggestion,
   getSelfHelpRecommendations
 } from "@/lib/error-pattern-analyzer";
-import { errorTrackingService } from "@/lib/error-service";
+
 import { 
   Card, 
   CardContent, 
@@ -15,9 +25,15 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Separator } from "@/components/ui/separator";
 
 interface ErrorSuggestionCardProps {
   error: EnhancedError;
@@ -25,210 +41,234 @@ interface ErrorSuggestionCardProps {
   className?: string;
 }
 
-export function ErrorSuggestionCard({ error, onClose, className }: ErrorSuggestionCardProps) {
-  const [analysis, setAnalysis] = useState(() => analyzeError(error));
-  const [immediateFix, setImmediateFix] = useState(() => getImmediateFixSuggestion(error));
-  const [recommendations, setRecommendations] = useState<ReturnType<typeof getSelfHelpRecommendations>>([]);
+export function ErrorSuggestionCard({ 
+  error, 
+  onClose,
+  className = "" 
+}: ErrorSuggestionCardProps) {
+  // Analyze the error to get intelligent suggestions
+  const analysis = analyzeError(error);
+  const fixSuggestion = getImmediateFixSuggestion(error);
+  const recommendations = getSelfHelpRecommendations([error]);
   
-  useEffect(() => {
-    // Update analysis when error changes
-    setAnalysis(analyzeError(error));
-    setImmediateFix(getImmediateFixSuggestion(error));
-    
-    // Get recommendations based on recent errors
-    const recentErrors = errorTrackingService.getRecentErrors();
-    setRecommendations(getSelfHelpRecommendations(recentErrors));
-  }, [error]);
-  
-  // Get the appropriate icon based on error severity
-  const renderIcon = () => {
+  // Apply the suggested fix
+  const handleApplyFix = () => {
+    if (fixSuggestion.actionable && fixSuggestion.action) {
+      fixSuggestion.action();
+    }
+  };
+
+  // Function to get the appropriate icon based on error severity
+  const getSeverityIcon = () => {
     switch (error.severity) {
       case ErrorSeverity.CRITICAL:
-        return <AlertCircle className="h-6 w-6 text-destructive" />;
+        return <AlertCircle className="h-5 w-5 text-destructive" />;
       case ErrorSeverity.ERROR:
-        return <AlertTriangle className="h-6 w-6 text-destructive" />;
+        return <AlertTriangle className="h-5 w-5 text-destructive/80" />;
       case ErrorSeverity.WARNING:
-        return <AlertTriangle className="h-6 w-6 text-warning" />;
+        return <AlertTriangle className="h-5 w-5 text-orange-500" />;
       case ErrorSeverity.INFO:
       default:
-        return <Info className="h-6 w-6 text-primary" />;
+        return <Terminal className="h-5 w-5 text-primary" />;
     }
   };
   
-  // Get card styling based on error severity
-  const getCardStyle = () => {
+  // Function to get severity text
+  const getSeverityText = () => {
     switch (error.severity) {
       case ErrorSeverity.CRITICAL:
-        return "border-destructive shadow-md";
+        return "Critical";
       case ErrorSeverity.ERROR:
-        return "border-destructive/70 shadow-sm";
+        return "Error";
       case ErrorSeverity.WARNING:
-        return "border-warning/70";
+        return "Warning";
       case ErrorSeverity.INFO:
+        return "Info";
       default:
-        return "border-primary/20";
+        return "Unknown";
+    }
+  };
+  
+  // Function to get severity badge
+  const getSeverityBadge = () => {
+    switch (error.severity) {
+      case ErrorSeverity.CRITICAL:
+        return <Badge variant="destructive">Critical</Badge>;
+      case ErrorSeverity.ERROR:
+        return <Badge variant="destructive">Error</Badge>;
+      case ErrorSeverity.WARNING:
+        return <Badge variant="outline" className="text-orange-500 border-orange-500">Warning</Badge>;
+      case ErrorSeverity.INFO:
+        return <Badge variant="secondary">Info</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
     }
   };
   
   return (
-    <Card className={`${getCardStyle()} ${className}`}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+    <Card className={`shadow-lg w-full ${className}`}>
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start">
           <div className="flex items-center gap-2">
-            {renderIcon()}
-            <CardTitle className="text-lg">
-              {analysis.patternFound && analysis.pattern 
-                ? analysis.pattern.name 
-                : "Unexpected Error"}
-            </CardTitle>
+            {getSeverityIcon()}
+            <div>
+              <CardTitle className="text-xl">
+                {analysis.patternFound && analysis.pattern 
+                  ? analysis.pattern.name 
+                  : error.message}
+              </CardTitle>
+              <CardDescription className="mt-1">
+                {analysis.patternFound && analysis.pattern 
+                  ? error.message 
+                  : `${getSeverityText()} occurred in ${error.context?.component || 'Unknown'}`}
+              </CardDescription>
+            </div>
           </div>
           {onClose && (
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={onClose}
+            >
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </Button>
           )}
         </div>
-        <CardDescription>
-          {error.message}
-        </CardDescription>
       </CardHeader>
       
-      <CardContent>
-        <div className="space-y-4">
-          {/* Immediate fix suggestion */}
-          <div className="rounded-md bg-muted p-3">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium">Suggested Fix</h3>
-                <div className="mt-1 text-sm">
-                  <p>{immediateFix.suggestion}</p>
-                </div>
-                {immediateFix.actionable && (
-                  <div className="mt-2">
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      onClick={immediateFix.action}
-                    >
-                      <RefreshCw className="mr-2 h-3 w-3" />
-                      Fix now
-                    </Button>
-                  </div>
-                )}
+      <CardContent className="space-y-4">
+        {/* Error Details */}
+        <div className="bg-muted p-3 rounded-md">
+          <div className="grid grid-cols-2 gap-y-2 text-sm">
+            <div className="text-muted-foreground">Severity:</div>
+            <div className="font-medium flex items-center">
+              {getSeverityBadge()}
+            </div>
+            
+            <div className="text-muted-foreground">Component:</div>
+            <div className="font-medium">
+              {error.context?.component || 'Unknown'}
+            </div>
+            
+            {error.context?.action && (
+              <>
+                <div className="text-muted-foreground">Action:</div>
+                <div className="font-medium">{error.context.action}</div>
+              </>
+            )}
+            
+            <div className="text-muted-foreground">Time:</div>
+            <div className="font-medium">
+              {error.timestamp.toLocaleTimeString()}
+            </div>
+          </div>
+        </div>
+        
+        {/* Immediate Fix Suggestion */}
+        {fixSuggestion.actionable && (
+          <div className="bg-primary/5 border border-primary/20 p-4 rounded-md">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <h3 className="font-medium text-base">
+                  Automatic fix available
+                </h3>
+                <p className="text-sm mt-1 text-muted-foreground">
+                  {fixSuggestion.suggestion}
+                </p>
+                <Button 
+                  onClick={handleApplyFix} 
+                  size="sm" 
+                  className="mt-3"
+                >
+                  <RotateCw className="mr-2 h-3.5 w-3.5" />
+                  Apply Fix
+                </Button>
               </div>
             </div>
           </div>
-          
-          {/* Detailed information */}
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="details">
-              <AccordionTrigger className="text-sm">More details</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="font-medium">Error Code:</span>{" "}
-                    {error.code || "Unknown"}
-                  </div>
-                  <div>
-                    <span className="font-medium">Occurred in:</span>{" "}
-                    {error.context?.component || "Unknown location"}
-                  </div>
-                  <div>
-                    <span className="font-medium">Action:</span>{" "}
-                    {error.context?.action || "Unknown action"}
-                  </div>
-                  <div>
-                    <span className="font-medium">Time:</span>{" "}
-                    {error.timestamp.toLocaleTimeString()}
-                  </div>
-                  {error.context?.additionalData && Object.keys(error.context.additionalData).length > 0 && (
+        )}
+        
+        {/* Pattern Analysis */}
+        {analysis.patternFound && analysis.pattern && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Pattern Analysis</h3>
+            <p className="text-sm text-muted-foreground">
+              {analysis.pattern.description}
+            </p>
+            {analysis.fixSuggestions.length > 0 && (
+              <div className="mt-2">
+                <h4 className="text-xs font-medium uppercase text-muted-foreground mb-1">
+                  Suggested fixes:
+                </h4>
+                <ul className="text-sm space-y-1 list-disc list-inside">
+                  {analysis.fixSuggestions.map((suggestion, i) => (
+                    <li key={i}>{suggestion}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Advanced Details */}
+        <Accordion type="single" collapsible className="w-full border rounded-md px-1">
+          <AccordionItem value="technical-details" className="border-none">
+            <AccordionTrigger className="py-2 hover:no-underline">
+              <span className="text-sm font-medium flex items-center">
+                <FileCode className="h-4 w-4 mr-2" />
+                Technical Details
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="text-xs">
+              <div className="space-y-2 bg-muted p-3 rounded-md overflow-auto max-h-40">
+                <div className="font-mono whitespace-pre-wrap break-all">
+                  <div><span className="text-muted-foreground">Error: </span>{error.message}</div>
+                  {error.originalError && (
+                    <div><span className="text-muted-foreground">Original: </span>{error.originalError.message}</div>
+                  )}
+                  {error.context?.additionalData && (
                     <div>
-                      <span className="font-medium">Additional Info:</span>{" "}
-                      {Object.entries(error.context.additionalData).map(([key, value]) => (
-                        <Badge key={key} variant="outline" className="mr-1">
-                          {key}: {String(value)}
-                        </Badge>
-                      ))}
+                      <span className="text-muted-foreground">Context: </span>
+                      {JSON.stringify(error.context.additionalData, null, 2)}
+                    </div>
+                  )}
+                  {error.originalError?.stack && (
+                    <div className="mt-2">
+                      <span className="text-muted-foreground">Stack: </span>
+                      <div className="ml-2 text-[10px] text-muted-foreground">
+                        {error.originalError.stack.split('\n').slice(0, 3).join('\n')}
+                      </div>
                     </div>
                   )}
                 </div>
-              </AccordionContent>
-            </AccordionItem>
-            
-            {/* Contextual help */}
-            {analysis.contextualHelp && (
-              <AccordionItem value="help">
-                <AccordionTrigger className="text-sm">Help & Information</AccordionTrigger>
-                <AccordionContent>
-                  <div 
-                    className="text-sm"
-                    dangerouslySetInnerHTML={{ __html: analysis.contextualHelp.replace(
-                      /\*\*(.*?)\*\*/g, '<strong>$1</strong>'
-                    ).replace(
-                      /\[([^\]]+)\]\(([^)]+)\)/g, 
-                      '<a href="$2" class="text-primary hover:underline">$1</a>'
-                    ) }}
-                  />
-                </AccordionContent>
-              </AccordionItem>
-            )}
-            
-            {/* Additional suggestions if we have recurring patterns */}
-            {recommendations.length > 0 && (
-              <AccordionItem value="patterns">
-                <AccordionTrigger className="text-sm">
-                  {recommendations.some(r => r.priority === "high") ? (
-                    <span className="flex items-center">
-                      Recurring Issues
-                      <Badge variant="destructive" className="ml-2">Important</Badge>
-                    </span>
-                  ) : "Recurring Issues"}
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-3">
-                    {recommendations.map((rec, idx) => (
-                      <div key={idx} className={`p-2 rounded-md ${
-                        rec.priority === "high" 
-                          ? "bg-destructive/10" 
-                          : rec.priority === "medium" 
-                              ? "bg-warning/10" 
-                              : "bg-muted"
-                      }`}>
-                        <h4 className="text-sm font-medium">{rec.title}</h4>
-                        <p className="text-xs text-muted-foreground">{rec.description}</p>
-                        <ul className="mt-1 list-disc list-inside text-xs space-y-1">
-                          {rec.steps.map((step, i) => (
-                            <li key={i}>{step}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-          </Accordion>
-        </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </CardContent>
       
-      <CardFooter className="flex justify-between pt-0">
-        <div className="text-xs text-muted-foreground">
-          {analysis.patternFound ? (
-            <span>
-              Pattern detected with {analysis.confidence}% confidence
-            </span>
-          ) : (
-            <span>No specific error pattern detected</span>
-          )}
+      <Separator />
+      
+      <CardFooter className="pt-4 pb-3">
+        <div className="w-full space-y-3">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1">
+              <Info className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                Error ID: {error.id.substring(0, 8)}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                {error.timestamp.toLocaleString()}
+              </span>
+            </div>
+          </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
-          <RefreshCw className="mr-2 h-3 w-3" />
-          Reload page
-        </Button>
       </CardFooter>
     </Card>
   );

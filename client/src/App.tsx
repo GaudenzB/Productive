@@ -9,6 +9,7 @@ import Meetings from "@/pages/meetings";
 import Notes from "@/pages/notes";
 import Tags from "@/pages/tags";
 import AuthPage from "@/pages/auth-page";
+import ErrorManagement from "@/pages/error-management";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 import ErrorBoundary from "@/components/error/ErrorBoundary";
@@ -24,6 +25,7 @@ function Router() {
       <ProtectedRoute path="/meetings" component={Meetings} />
       <ProtectedRoute path="/notes" component={Notes} />
       <ProtectedRoute path="/tags" component={Tags} />
+      <ProtectedRoute path="/error-management" component={ErrorManagement} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
