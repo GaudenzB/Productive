@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
+import { setupApiDocumentation, setupApiVersioning } from "./api";
 import {
   insertTaskSchema,
   insertProjectSchema,
@@ -10,10 +11,43 @@ import {
   insertNoteSchema,
   insertTagSchema
 } from "@shared/schema";
+import { BadRequestError, NotFoundError, UnauthorizedError, ConflictError } from "./errors";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up API documentation and versioning
+  setupApiDocumentation(app);
+  setupApiVersioning(app);
+  
   // Set up authentication routes
   setupAuth(app);
+  
+  // Global error handling middleware to be used at the end
+  const errorHandler = (err: any, req: any, res: any, next: any) => {
+    console.error(`[ERROR] ${err.message}`);
+    
+    // Generate a unique request ID for tracking
+    const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Get status code from error or default to 500
+    const status = err.status || 500;
+    
+    // Format the error response
+    const errorResponse = {
+      status: 'error',
+      message: err.message || 'An unexpected error occurred',
+      code: err.code || 'INTERNAL_SERVER_ERROR',
+      path: req.path,
+      timestamp: new Date().toISOString(),
+      requestId,
+    };
+    
+    // Add validation errors if present
+    if (err.errors) {
+      Object.assign(errorResponse, { errors: err.errors });
+    }
+    
+    res.status(status).json(errorResponse);
+  };
 
   // Tasks Routes
   app.get("/api/tasks", async (req, res) => {
@@ -374,6 +408,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
   });
+
+  // Register global error handling middleware
+  app.use(errorHandler);
 
   // Create and return the HTTP server
   const httpServer = createServer(app);
