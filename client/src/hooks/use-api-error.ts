@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useErrorContext } from '@/contexts/ErrorContext';
-import { ErrorSeverity, ErrorContext } from '@/lib/error-handling';
+import { ErrorSeverity, ErrorContext, createError } from '@/lib/error-handling';
 
 // Type for standard API error response
 interface ApiErrorResponse {
@@ -95,8 +95,17 @@ export function useApiErrorHandler() {
       severity = ErrorSeverity.CRITICAL;
     }
 
+    // Create enhanced error with proper context and severity
+    const enhancedError = createError(
+      parsedError.message,
+      severity,
+      errorContext,
+      parsedError instanceof Error ? parsedError : undefined
+    );
+
     // Track the error with our centralized error tracking
-    return handleError(parsedError, { ...errorContext, severity });
+    handleError(enhancedError);
+    return enhancedError;
   }, [handleError, trackingService]);
 
   return { handleApiError };
