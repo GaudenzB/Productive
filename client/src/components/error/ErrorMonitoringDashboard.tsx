@@ -21,11 +21,11 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { CustomBadge } from "@/components/ui/custom-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
+import { CustomProgress } from "@/components/ui/custom-progress";
 import { ErrorSuggestionCard } from "./ErrorSuggestionCard";
 
 
@@ -92,14 +92,14 @@ export function ErrorMonitoringDashboard() {
   const getSeverityBadge = (severity: ErrorSeverity) => {
     switch (severity) {
       case ErrorSeverity.CRITICAL:
-        return <Badge variant="destructive">Critical</Badge>;
+        return <CustomBadge variant="destructive">Critical</CustomBadge>;
       case ErrorSeverity.ERROR:
-        return <Badge variant="destructive">Error</Badge>;
+        return <CustomBadge variant="destructive">Error</CustomBadge>;
       case ErrorSeverity.WARNING:
-        return <Badge variant="warning">Warning</Badge>;
+        return <CustomBadge variant="warning">Warning</CustomBadge>;
       case ErrorSeverity.INFO:
       default:
-        return <Badge variant="secondary">Info</Badge>;
+        return <CustomBadge variant="secondary">Info</CustomBadge>;
     }
   };
   
@@ -236,13 +236,13 @@ export function ErrorMonitoringDashboard() {
                   <div key={index} className="flex items-start justify-between p-2 rounded-md bg-muted">
                     <div>
                       <div className="flex items-center gap-2">
-                        <Badge 
+                        <CustomBadge 
                           variant={pattern.severity === ErrorSeverity.CRITICAL || pattern.severity === ErrorSeverity.ERROR 
                             ? "destructive" 
                             : "outline"}
                         >
                           {pattern.count}x
-                        </Badge>
+                        </CustomBadge>
                         <h4 className="text-sm font-medium">{pattern.patternName}</h4>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
