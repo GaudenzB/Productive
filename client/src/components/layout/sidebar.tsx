@@ -21,6 +21,7 @@ export function Sidebar() {
   const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Tasks", href: "/tasks", icon: Layers },
+    { name: "Kanban Board", href: "/tasks-kanban", icon: FolderKanban },
     { name: "Projects", href: "/projects", icon: FolderKanban },
     { name: "Meetings", href: "/meetings", icon: Calendar },
     { name: "Notes", href: "/notes", icon: FileText },

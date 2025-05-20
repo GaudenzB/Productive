@@ -292,10 +292,22 @@ export default function TasksKanban() {
   };
   
   const onStatusChange = (taskId: string, newStatus: string) => {
-    updateTaskMutation.mutate({
-      id: taskId,
-      data: { status: newStatus },
-    });
+    console.log(`Status change triggered: Task ${taskId} to ${newStatus}`);
+    
+    // Find the task in our local state
+    const task = tasks?.find(t => t.id === taskId);
+    if (!task) {
+      console.error(`Task with id ${taskId} not found`);
+      return;
+    }
+    
+    // Only update if status actually changed
+    if (task.status !== newStatus) {
+      updateTaskMutation.mutate({
+        id: taskId,
+        data: { status: newStatus },
+      });
+    }
   };
   
   const resetForm = () => {
@@ -893,8 +905,8 @@ export default function TasksKanban() {
                 )}
               </div>
             </div>
-          ) : (
-            // Show kanban view with filteredTasks
+          ) : viewMode === "kanban" ? (
+            // Show kanban board view with drag and drop
             <KanbanBoard
               tasks={filteredTasks}
               projects={projects}
@@ -904,6 +916,64 @@ export default function TasksKanban() {
               onTaskSelect={onTaskSelect}
               getTaskTags={getTaskTags}
             />
+          ) : (
+            // Show list view as a simple table for now - focusing on making the kanban board work
+            <div className="space-y-4">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-muted">
+                    <th className="p-2 text-left">Status</th>
+                    <th className="p-2 text-left">Title</th>
+                    <th className="p-2 text-left">Priority</th>
+                    <th className="p-2 text-left">Due Date</th>
+                    <th className="p-2 text-left">Project</th>
+                    <th className="p-2 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTasks.map(task => (
+                    <tr key={task.id} className={task.status === "COMPLETED" ? "opacity-70" : ""}>
+                      <td className="p-2 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onStatusChange(
+                            task.id, 
+                            task.status === "COMPLETED" ? "TODO" : "COMPLETED"
+                          )}
+                        >
+                          {task.status}
+                        </Button>
+                      </td>
+                      <td className="p-2 border-t">
+                        <div className={task.status === "COMPLETED" ? "line-through text-muted-foreground" : ""}>
+                          {task.title}
+                        </div>
+                      </td>
+                      <td className="p-2 border-t">
+                        <PriorityBadge priority={task.priority} />
+                      </td>
+                      <td className="p-2 border-t">
+                        {task.dueDate && format(new Date(task.dueDate), "MMM d, yyyy")}
+                      </td>
+                      <td className="p-2 border-t">
+                        {task.projectId && projects && 
+                          projects.find(p => p.id === task.projectId)?.title}
+                      </td>
+                      <td className="p-2 border-t">
+                        <Button 
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onTaskSelect(task)}
+                        >
+                          Edit
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
           
           {/* Edit Task Dialog */}

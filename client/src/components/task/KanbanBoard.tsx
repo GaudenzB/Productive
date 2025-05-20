@@ -69,8 +69,30 @@ export function KanbanBoard({
     // Determine the new status based on the destination column
     const newStatus = destination.droppableId;
 
+    // Log the task move for debugging
+    console.log(`Moving task ${taskId} from ${source.droppableId} to ${newStatus}`);
+
     // Update task status in the parent component
     onTaskStatusChange(taskId, newStatus);
+    
+    // Immediately update the UI to reflect the change
+    // This creates a more responsive experience even if the server call is still processing
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      const updatedTask = {...task, status: newStatus};
+      
+      // Find task by ID and update its status (optimistic update)
+      const sourceColumn = columns[source.droppableId];
+      const destinationColumn = columns[destination.droppableId];
+      
+      if (sourceColumn && destinationColumn) {
+        // Remove from source column
+        sourceColumn.taskIds = sourceColumn.taskIds.filter(id => id !== taskId);
+        
+        // Add to destination column
+        destinationColumn.taskIds.push(taskId);
+      }
+    }
   };
 
   // Get task by id
