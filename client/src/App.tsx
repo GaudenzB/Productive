@@ -11,6 +11,9 @@ import Tags from "@/pages/tags";
 import AuthPage from "@/pages/auth-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
+import ErrorBoundary from "@/components/error/ErrorBoundary";
+import { ErrorProvider } from "@/contexts/ErrorContext";
+import { QueryErrorResetBoundary } from "@tanstack/react-query";
 
 function Router() {
   return (
@@ -29,12 +32,25 @@ function Router() {
 
 function App() {
   return (
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </AuthProvider>
+    <ErrorProvider>
+      <ErrorBoundary component="App">
+        <AuthProvider>
+          <QueryErrorResetBoundary>
+            {({ reset }) => (
+              <ErrorBoundary 
+                component="QueryErrorBoundary"
+                onError={() => reset()}
+              >
+                <TooltipProvider>
+                  <Toaster />
+                  <Router />
+                </TooltipProvider>
+              </ErrorBoundary>
+            )}
+          </QueryErrorResetBoundary>
+        </AuthProvider>
+      </ErrorBoundary>
+    </ErrorProvider>
   );
 }
 
