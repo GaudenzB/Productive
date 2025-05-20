@@ -18,6 +18,7 @@ import { users, tasks, projects, meetings, notes, tags } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPgSimple from "connect-pg-simple";
+import { v4 as uuidv4 } from "uuid";
 
 const MemoryStore = createMemoryStore(session);
 const PgStore = connectPgSimple(session);
@@ -368,7 +369,10 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createUser(userData: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(userData).returning();
+    const [user] = await db.insert(users).values({
+      id: uuidv4(),
+      ...userData
+    }).returning();
     return user;
   }
   
@@ -383,7 +387,10 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createTask(taskData: InsertTask): Promise<Task> {
-    const [task] = await db.insert(tasks).values(taskData).returning();
+    const [task] = await db.insert(tasks).values({
+      id: uuidv4(),
+      ...taskData
+    }).returning();
     return task;
   }
   
@@ -415,7 +422,10 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createProject(projectData: InsertProject): Promise<Project> {
-    const [project] = await db.insert(projects).values(projectData).returning();
+    const [project] = await db.insert(projects).values({
+      id: uuidv4(),
+      ...projectData
+    }).returning();
     return project;
   }
   
@@ -447,7 +457,10 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createMeeting(meetingData: InsertMeeting): Promise<Meeting> {
-    const [meeting] = await db.insert(meetings).values(meetingData).returning();
+    const [meeting] = await db.insert(meetings).values({
+      id: uuidv4(),
+      ...meetingData
+    }).returning();
     return meeting;
   }
   
@@ -479,7 +492,10 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createNote(noteData: InsertNote): Promise<Note> {
-    const [note] = await db.insert(notes).values(noteData).returning();
+    const [note] = await db.insert(notes).values({
+      id: uuidv4(),
+      ...noteData
+    }).returning();
     return note;
   }
   
@@ -511,7 +527,10 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createTag(tagData: InsertTag): Promise<Tag> {
-    const [tag] = await db.insert(tags).values(tagData).returning();
+    const [tag] = await db.insert(tags).values({
+      id: uuidv4(),
+      ...tagData
+    }).returning();
     return tag;
   }
   
