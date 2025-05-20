@@ -73,10 +73,19 @@ export default function Tasks() {
       const res = await apiRequest("POST", "/api/tasks", data);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (newTask) => {
+      // Update the cache with the new task
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      // Additional success handling
       setIsCreateDialogOpen(false);
-      form.reset();
+      form.reset({
+        title: "",
+        description: "",
+        status: "TODO",
+        priority: "MEDIUM",
+        dueDate: null,
+        projectId: null,
+      });
       toast({
         title: "Task created",
         description: "Your task has been created successfully.",
@@ -527,6 +536,79 @@ export default function Tasks() {
             </div>
           </div>
           
+          {/* Active Filters Display */}
+          {(statusFilter || priorityFilter || projectFilter || searchQuery) && (
+            <div className="mb-4 flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-muted-foreground">Active filters:</span>
+              
+              {searchQuery && (
+                <div className="bg-secondary-foreground/10 text-sm rounded-full px-3 py-1 flex items-center gap-1">
+                  <span>Search: {searchQuery}</span>
+                  <button 
+                    onClick={() => setSearchQuery("")}
+                    className="ml-1 hover:text-destructive"
+                    aria-label="Clear search filter"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+              
+              {statusFilter && (
+                <div className="bg-secondary-foreground/10 text-sm rounded-full px-3 py-1 flex items-center gap-1">
+                  <span>Status: {statusFilter}</span>
+                  <button 
+                    onClick={() => setStatusFilter(null)}
+                    className="ml-1 hover:text-destructive"
+                    aria-label="Clear status filter"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+              
+              {priorityFilter && (
+                <div className="bg-secondary-foreground/10 text-sm rounded-full px-3 py-1 flex items-center gap-1">
+                  <span>Priority: {priorityFilter}</span>
+                  <button 
+                    onClick={() => setPriorityFilter(null)}
+                    className="ml-1 hover:text-destructive"
+                    aria-label="Clear priority filter"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+              
+              {projectFilter && projects && (
+                <div className="bg-secondary-foreground/10 text-sm rounded-full px-3 py-1 flex items-center gap-1">
+                  <span>Project: {projects.find(p => p.id === projectFilter)?.title}</span>
+                  <button 
+                    onClick={() => setProjectFilter(null)}
+                    className="ml-1 hover:text-destructive"
+                    aria-label="Clear project filter"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter(null);
+                  setPriorityFilter(null);
+                  setProjectFilter(null);
+                }}
+              >
+                Clear all
+              </Button>
+            </div>
+          )}
+          
           {/* Task List */}
           <div className="grid grid-cols-1 gap-4">
             {isLoadingTasks ? (
@@ -536,8 +618,61 @@ export default function Tasks() {
                 <p className="mt-2 text-muted-foreground">Loading tasks...</p>
               </div>
             ) : tasks && tasks.length > 0 ? (
-              // Task items
-              tasks.map((task) => (
+              // Filter tasks based on criteria
+              (() => {
+                const filteredTasks = tasks.filter(task => {
+                  // Filter by search query
+                  if (searchQuery && 
+                      !task.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+                      !task.description?.toLowerCase().includes(searchQuery.toLowerCase())) {
+                    return false;
+                  }
+                  
+                  // Filter by status
+                  if (statusFilter && task.status !== statusFilter) {
+                    return false;
+                  }
+                  
+                  // Filter by priority
+                  if (priorityFilter && task.priority !== priorityFilter) {
+                    return false;
+                  }
+                  
+                  // Filter by project
+                  if (projectFilter && task.projectId !== projectFilter) {
+                    return false;
+                  }
+                  
+                  return true;
+                });
+                
+                if (filteredTasks.length === 0) {
+                  return (
+                    <div className="col-span-full text-center py-8">
+                      <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                        <Filter className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <h3 className="text-lg font-medium">No matching tasks</h3>
+                      <p className="text-muted-foreground mt-2">
+                        Try adjusting your filters or search query
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="mt-4"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setStatusFilter(null);
+                          setPriorityFilter(null);
+                          setProjectFilter(null);
+                        }}
+                      >
+                        Clear all filters
+                      </Button>
+                    </div>
+                  );
+                }
+                
+                return filteredTasks.map(task => (
                 <Card 
                   key={task.id} 
                   className={cn(
