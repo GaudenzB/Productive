@@ -73,6 +73,14 @@ export const tags = pgTable('tags', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Task-Tag relation schema
+export const taskTags = pgTable('task_tags', {
+  id: text('id').primaryKey().notNull(),
+  taskId: text('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
+  tagId: text('tag_id').notNull().references(() => tags.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users)
   .omit({ id: true, createdAt: true, updatedAt: true })
@@ -85,6 +93,7 @@ export const insertProjectSchema = createInsertSchema(projects).omit({ id: true,
 export const insertMeetingSchema = createInsertSchema(meetings).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertNoteSchema = createInsertSchema(notes).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTagSchema = createInsertSchema(tags).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertTaskTagSchema = createInsertSchema(taskTags).omit({ id: true, createdAt: true });
 
 // Type exports
 export type User = typeof users.$inferSelect;
