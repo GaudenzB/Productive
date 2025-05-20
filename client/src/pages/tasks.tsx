@@ -17,6 +17,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { PriorityBadge } from "@/components/ui/priority-badge";
 import { TagBadge } from "@/components/ui/tag-badge";
 import { TagSelector } from "@/components/ui/tag-selector";
+import { TagDialog } from "@/components/task/TagDialog";
+import { TagFilter } from "@/components/task/TagFilter";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
