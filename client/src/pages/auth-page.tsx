@@ -76,41 +76,7 @@ export default function AuthPage() {
 
   return (
     <div className="flex min-h-screen bg-secondary">
-      <div className="flex-1 hidden lg:block bg-primary">
-        <div className="flex flex-col justify-center items-center h-full text-white p-8">
-          <h1 className="text-4xl font-bold mb-6">ProductiTask</h1>
-          <p className="text-xl mb-8 max-w-md text-center">
-            Manage your tasks, projects, meetings, and notes in a clean, professional interface.
-          </p>
-          <div className="grid grid-cols-2 gap-6 max-w-xl">
-            <div className="bg-white/10 backdrop-blur-sm p-6 rounded-lg">
-              <h3 className="text-lg font-medium mb-2">Task Management</h3>
-              <p className="text-sm text-white/80">
-                Create, organize, and track your tasks with priorities and due dates
-              </p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm p-6 rounded-lg">
-              <h3 className="text-lg font-medium mb-2">Project Planning</h3>
-              <p className="text-sm text-white/80">
-                Group related tasks into projects and track progress
-              </p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm p-6 rounded-lg">
-              <h3 className="text-lg font-medium mb-2">Meeting Scheduler</h3>
-              <p className="text-sm text-white/80">
-                Never miss important meetings with our scheduler
-              </p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm p-6 rounded-lg">
-              <h3 className="text-lg font-medium mb-2">Note Taking</h3>
-              <p className="text-sm text-white/80">
-                Capture ideas and information in organized notes
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="w-full flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">ProductiTask</CardTitle>
