@@ -5,8 +5,8 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileMenu } from "@/components/layout/mobile-menu";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +37,7 @@ const taskFormSchema = z.object({
 export default function Tasks() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -54,7 +55,7 @@ export default function Tasks() {
     queryKey: ['/api/projects'],
   });
   
-  // Filter tasks based on search and filters
+  // Create filtered tasks
   const filteredTasks = tasks ? tasks.filter(task => {
     // Match search query
     const matchesSearch = !searchQuery || 
@@ -73,8 +74,21 @@ export default function Tasks() {
     return matchesSearch && matchesStatus && matchesPriority && matchesProject;
   }) : [];
   
-  // Form
-  const form = useForm<z.infer<typeof taskFormSchema>>({
+  // Create Task Form
+  const createForm = useForm<z.infer<typeof taskFormSchema>>({
+    resolver: zodResolver(taskFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      status: "TODO",
+      priority: "MEDIUM",
+      dueDate: null,
+      projectId: null,
+    },
+  });
+  
+  // Edit Task Form
+  const editForm = useForm<z.infer<typeof taskFormSchema>>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
       title: "",
@@ -92,12 +106,13 @@ export default function Tasks() {
       const res = await apiRequest("POST", "/api/tasks", data);
       return res.json();
     },
-    onSuccess: (newTask) => {
-      // Update the cache with the new task
+    onSuccess: () => {
+      // Refresh the task list
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
-      // Additional success handling
+      
+      // Reset and close the form
       setIsCreateDialogOpen(false);
-      form.reset({
+      createForm.reset({
         title: "",
         description: "",
         status: "TODO",
@@ -105,6 +120,7 @@ export default function Tasks() {
         dueDate: null,
         projectId: null,
       });
+      
       toast({
         title: "Task created",
         description: "Your task has been created successfully.",
@@ -127,6 +143,7 @@ export default function Tasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       setSelectedTask(null);
+      setIsEditDialogOpen(false);
       toast({
         title: "Task updated",
         description: "Your task has been updated successfully.",
@@ -148,6 +165,7 @@ export default function Tasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       setSelectedTask(null);
+      setIsEditDialogOpen(false);
       toast({
         title: "Task deleted",
         description: "Your task has been deleted successfully.",
@@ -175,6 +193,8 @@ export default function Tasks() {
   
   const onTaskSelect = (task: Task) => {
     setSelectedTask(task);
+    setIsEditDialogOpen(true);
+    
     // Ensure task status is one of the valid enum values
     const status = (task.status === "TODO" || task.status === "IN_PROGRESS" || task.status === "COMPLETED") 
       ? task.status 
@@ -185,7 +205,7 @@ export default function Tasks() {
       ? task.priority
       : "MEDIUM";
       
-    form.reset({
+    editForm.reset({
       title: task.title,
       description: task.description || "",
       status: status as "TODO" | "IN_PROGRESS" | "COMPLETED",
@@ -200,18 +220,6 @@ export default function Tasks() {
       id: taskId,
       data: { status: completed ? "COMPLETED" : "TODO" },
     });
-  };
-  
-  const resetForm = () => {
-    form.reset({
-      title: "",
-      description: "",
-      status: "TODO",
-      priority: "MEDIUM",
-      dueDate: null,
-      projectId: null,
-    });
-    setSelectedTask(null);
   };
   
   return (
@@ -239,6 +247,7 @@ export default function Tasks() {
                 />
               </div>
               
+              {/* Filter Dialog */}
               <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" className="gap-1">
@@ -366,6 +375,7 @@ export default function Tasks() {
                 </DialogContent>
               </Dialog>
               
+              {/* Create Task Dialog */}
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="gap-1">
@@ -379,10 +389,10 @@ export default function Tasks() {
                       Add a new task to your productivity list.
                     </p>
                   </DialogHeader>
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onCreateSubmit)} className="space-y-4">
+                  <Form {...createForm}>
+                    <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
                       <FormField
-                        control={form.control}
+                        control={createForm.control}
                         name="title"
                         render={({ field }) => (
                           <FormItem>
@@ -396,7 +406,7 @@ export default function Tasks() {
                       />
                       
                       <FormField
-                        control={form.control}
+                        control={createForm.control}
                         name="description"
                         render={({ field }) => (
                           <FormItem>
@@ -409,35 +419,9 @@ export default function Tasks() {
                         )}
                       />
                       
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
-                          control={form.control}
-                          name="priority"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Priority</FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
-                                defaultValue={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select priority" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="LOW">Low</SelectItem>
-                                  <SelectItem value="MEDIUM">Medium</SelectItem>
-                                  <SelectItem value="HIGH">High</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
+                          control={createForm.control}
                           name="status"
                           render={({ field }) => (
                             <FormItem>
@@ -461,11 +445,37 @@ export default function Tasks() {
                             </FormItem>
                           )}
                         />
+                        
+                        <FormField
+                          control={createForm.control}
+                          name="priority"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Priority</FormLabel>
+                              <Select 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select priority" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="LOW">Low</SelectItem>
+                                  <SelectItem value="MEDIUM">Medium</SelectItem>
+                                  <SelectItem value="HIGH">High</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
-                          control={form.control}
+                          control={createForm.control}
                           name="dueDate"
                           render={({ field }) => (
                             <FormItem className="flex flex-col">
@@ -476,7 +486,7 @@ export default function Tasks() {
                                     <Button
                                       variant={"outline"}
                                       className={cn(
-                                        "w-full pl-3 text-left font-normal",
+                                        "pl-3 text-left font-normal",
                                         !field.value && "text-muted-foreground"
                                       )}
                                     >
@@ -504,23 +514,23 @@ export default function Tasks() {
                         />
                         
                         <FormField
-                          control={form.control}
+                          control={createForm.control}
                           name="projectId"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Project</FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                value={field.value || "none"}
+                              <Select 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value || ""}
                               >
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Assign to project" />
+                                    <SelectValue placeholder="Select project" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="none">None</SelectItem>
-                                  {projects?.map((project) => (
+                                  <SelectItem value="">None</SelectItem>
+                                  {projects && projects.map((project) => (
                                     <SelectItem key={project.id} value={project.id}>
                                       {project.title}
                                     </SelectItem>
@@ -537,14 +547,14 @@ export default function Tasks() {
                         <Button 
                           type="button" 
                           variant="outline" 
-                          onClick={() => setIsCreateDialogOpen(false)}
+                          onClick={() => {
+                            createForm.reset();
+                            setIsCreateDialogOpen(false);
+                          }}
                         >
                           Cancel
                         </Button>
-                        <Button 
-                          type="submit" 
-                          disabled={createTaskMutation.isPending}
-                        >
+                        <Button type="submit" disabled={createTaskMutation.isPending}>
                           {createTaskMutation.isPending ? "Creating..." : "Create Task"}
                         </Button>
                       </div>
@@ -677,8 +687,8 @@ export default function Tasks() {
                 </Button>
               </div>
             ) : (
-              // Show filtered tasks
-              filteredTasks.map(task => (
+              // Task items
+              filteredTasks.map((task) => (
                 <Card 
                   key={task.id} 
                   className={cn(
@@ -720,223 +730,219 @@ export default function Tasks() {
                               </span>
                             )}
                           </div>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => onTaskSelect(task)}
-                              >
-                                Edit
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Edit Task</DialogTitle>
-                              </DialogHeader>
-                              <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onUpdateSubmit)} className="space-y-4">
-                                  <FormField
-                                    control={form.control}
-                                    name="title"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Title</FormLabel>
-                                        <FormControl>
-                                          <Input placeholder="Task title" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                  
-                                  <FormField
-                                    control={form.control}
-                                    name="description"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Description</FormLabel>
-                                        <FormControl>
-                                          <Textarea placeholder="Describe your task" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                  
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                      control={form.control}
-                                      name="priority"
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Priority</FormLabel>
-                                          <Select 
-                                            onValueChange={field.onChange} 
-                                            value={field.value}
-                                          >
-                                            <FormControl>
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Select priority" />
-                                              </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                              <SelectItem value="LOW">Low</SelectItem>
-                                              <SelectItem value="MEDIUM">Medium</SelectItem>
-                                              <SelectItem value="HIGH">High</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                    
-                                    <FormField
-                                      control={form.control}
-                                      name="status"
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Status</FormLabel>
-                                          <Select 
-                                            onValueChange={field.onChange} 
-                                            value={field.value}
-                                          >
-                                            <FormControl>
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Select status" />
-                                              </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                              <SelectItem value="TODO">To Do</SelectItem>
-                                              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                                              <SelectItem value="COMPLETED">Completed</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                  </div>
-                                  
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                      control={form.control}
-                                      name="dueDate"
-                                      render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                          <FormLabel>Due Date</FormLabel>
-                                          <Popover>
-                                            <PopoverTrigger asChild>
-                                              <FormControl>
-                                                <Button
-                                                  variant={"outline"}
-                                                  className={cn(
-                                                    "w-full pl-3 text-left font-normal",
-                                                    !field.value && "text-muted-foreground"
-                                                  )}
-                                                >
-                                                  {field.value ? (
-                                                    format(field.value, "PPP")
-                                                  ) : (
-                                                    <span>Pick a date</span>
-                                                  )}
-                                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                              </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                              <Calendar
-                                                mode="single"
-                                                selected={field.value || undefined}
-                                                onSelect={field.onChange}
-                                                initialFocus
-                                              />
-                                            </PopoverContent>
-                                          </Popover>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                    
-                                    <FormField
-                                      control={form.control}
-                                      name="projectId"
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Project</FormLabel>
-                                          <Select
-                                            onValueChange={field.onChange}
-                                            value={field.value || "none"}
-                                          >
-                                            <FormControl>
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Assign to project" />
-                                              </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                              <SelectItem value="none">None</SelectItem>
-                                              {projects?.map((project) => (
-                                                <SelectItem key={project.id} value={project.id}>
-                                                  {project.title}
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                  </div>
-                                  
-                                  <div className="flex justify-between">
-                                    <Button
-                                      type="button"
-                                      variant="destructive"
-                                      onClick={() => deleteTaskMutation.mutate(selectedTask!.id)}
-                                      disabled={deleteTaskMutation.isPending}
-                                    >
-                                      {deleteTaskMutation.isPending ? "Deleting..." : "Delete"}
-                                    </Button>
-                                    
-                                    <div className="flex gap-2">
-                                      <Button 
-                                        type="button" 
-                                        variant="outline" 
-                                        onClick={resetForm}
-                                      >
-                                        Cancel
-                                      </Button>
-                                      <Button 
-                                        type="submit" 
-                                        disabled={updateTaskMutation.isPending}
-                                      >
-                                        {updateTaskMutation.isPending ? "Saving..." : "Save Changes"}
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </form>
-                              </Form>
-                            </DialogContent>
-                          </Dialog>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => onTaskSelect(task)}
+                          >
+                            Edit
+                          </Button>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               ))
-            ) : (
-              // Empty state
-              <Card className="text-center py-10">
-                <CardContent>
-                  <h3 className="text-lg font-medium mb-2">No tasks yet</h3>
-                  <p className="text-muted-foreground mb-4">Create your first task to get started</p>
-                  <Button onClick={() => setIsCreateDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" /> New Task
-                  </Button>
-                </CardContent>
-              </Card>
             )}
           </div>
+          
+          {/* Edit Task Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Task</DialogTitle>
+              </DialogHeader>
+              <Form {...editForm}>
+                <form onSubmit={editForm.handleSubmit(onUpdateSubmit)} className="space-y-4">
+                  <FormField
+                    control={editForm.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Task title" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={editForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Describe your task" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={editForm.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="TODO">To Do</SelectItem>
+                              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                              <SelectItem value="COMPLETED">Completed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
+                      name="priority"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Priority</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select priority" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="LOW">Low</SelectItem>
+                              <SelectItem value="MEDIUM">Medium</SelectItem>
+                              <SelectItem value="HIGH">High</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={editForm.control}
+                      name="dueDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Due Date</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "PPP")
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value || undefined}
+                                onSelect={field.onChange}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
+                      name="projectId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Project</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value || ""}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select project" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="">None</SelectItem>
+                              {projects && projects.map((project) => (
+                                <SelectItem key={project.id} value={project.id}>
+                                  {project.title}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <Button 
+                      type="button" 
+                      variant="destructive" 
+                      onClick={() => {
+                        if (selectedTask) {
+                          deleteTaskMutation.mutate(selectedTask.id);
+                        }
+                      }}
+                      disabled={deleteTaskMutation.isPending}
+                    >
+                      {deleteTaskMutation.isPending ? "Deleting..." : "Delete"}
+                    </Button>
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          setSelectedTask(null);
+                          setIsEditDialogOpen(false);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        disabled={updateTaskMutation.isPending}
+                      >
+                        {updateTaskMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </div>
