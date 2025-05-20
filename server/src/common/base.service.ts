@@ -17,7 +17,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
   /**
    * Get all records
    */
-  protected async getAll(filter?: Record<string, any>): Promise<T[]> {
+  public async getAll(filter?: Record<string, any>): Promise<T[]> {
     try {
       return await executeQuery(
         () => this.getAllQuery(filter),
@@ -33,7 +33,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
   /**
    * Get a single record by ID
    */
-  protected async getById(id: string): Promise<T> {
+  public async getById(id: string): Promise<T> {
     try {
       const result = await executeQuery(
         () => this.getByIdQuery(id),
@@ -55,7 +55,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
   /**
    * Create a new record
    */
-  protected async create(data: CreateDto): Promise<T> {
+  public async create(data: CreateDto): Promise<T> {
     try {
       return await withTransaction(
         (trx) => this.createQuery(data, trx),
@@ -70,7 +70,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
   /**
    * Update an existing record
    */
-  protected async update(id: string, data: UpdateDto): Promise<T> {
+  public async update(id: string, data: UpdateDto): Promise<T> {
     try {
       // First check if the record exists
       await this.getById(id);
@@ -89,7 +89,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
   /**
    * Delete a record
    */
-  protected async delete(id: string): Promise<void> {
+  public async delete(id: string): Promise<void> {
     try {
       // First check if the record exists
       await this.getById(id);

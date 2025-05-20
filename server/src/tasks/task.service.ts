@@ -5,6 +5,7 @@ import { BaseService } from '../common/base.service';
 import { RecordNotFoundError } from '../common/db-errors';
 import { executeQuery, withTransaction } from '../common/db-transaction';
 import { Task, InsertTask } from '@shared/schema';
+import { randomUUID } from 'crypto';
 
 /**
  * Task Service
@@ -175,9 +176,23 @@ export class TaskService extends BaseService<Task, InsertTask, Partial<Task>> {
   }
   
   protected async createQuery(data: InsertTask, trx = db): Promise<Task> {
+    // We need to explicitly type the insert values to make TypeScript happy
     const result = await trx
       .insert(tasks)
-      .values(data)
+      .values({
+        id: randomUUID(),
+        title: data.title,
+        description: data.description || null,
+        status: data.status || 'TODO',
+        priority: data.priority || 'MEDIUM',
+        dueDate: data.dueDate || null,
+        completed: false,
+        completedAt: null,
+        userId: data.userId,
+        projectId: data.projectId || null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
       .returning();
     
     return result[0];

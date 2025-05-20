@@ -21,6 +21,8 @@ export const tasks = pgTable('tasks', {
   status: text('status').default('TODO').notNull(),
   priority: text('priority').default('MEDIUM').notNull(),
   dueDate: timestamp('due_date'),
+  completed: boolean('completed').default(false).notNull(),
+  completedAt: timestamp('completed_at'),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),

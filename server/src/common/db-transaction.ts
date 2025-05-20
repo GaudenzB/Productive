@@ -10,7 +10,7 @@ import { handleDatabaseError } from './db-errors';
  * @returns Result of the callback function
  */
 export async function withTransaction<T>(
-  callback: (trx: typeof db) => Promise<T>,
+  callback: (trx: any) => Promise<T>,
   entityName: string = 'unknown'
 ): Promise<T> {
   const startTime = Date.now();
