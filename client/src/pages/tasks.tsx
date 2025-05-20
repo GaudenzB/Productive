@@ -649,6 +649,55 @@ export default function Tasks() {
                         />
                       </div>
                       
+                      {/* Tag Selection */}
+                      <FormField
+                        control={form.control}
+                        name="tagIds"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tags</FormLabel>
+                            <FormControl>
+                              <div className="flex flex-wrap gap-2">
+                                {tags && tags.length > 0 ? (
+                                  <TagSelector
+                                    tags={tags}
+                                    selectedTagIds={field.value || []}
+                                    onTagSelect={(tagIds) => field.onChange(tagIds)}
+                                    onCreateTag={() => setIsTagDialogOpen(true)}
+                                  />
+                                ) : (
+                                  <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 flex items-center gap-1"
+                                    onClick={() => setIsTagDialogOpen(true)}
+                                  >
+                                    <TagIcon className="h-3.5 w-3.5" />
+                                    <span>Create Tags</span>
+                                  </Button>
+                                )}
+                                {field.value && field.value.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {field.value.map(tagId => {
+                                      const tag = tags?.find(t => t.id === tagId);
+                                      return tag ? (
+                                        <TagBadge 
+                                          key={tag.id} 
+                                          name={tag.name} 
+                                          color={tag.color} 
+                                        />
+                                      ) : null;
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
                       <div className="flex justify-end gap-2">
                         <Button 
                           type="button" 
