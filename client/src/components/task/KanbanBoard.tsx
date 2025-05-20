@@ -122,26 +122,32 @@ export function KanbanBoard({
     const newStatus = destination.droppableId;
 
     // Log the task move for debugging
-    console.log(`Moving task ${taskId} from ${source.droppableId} to ${newStatus}`);
+    console.log(`Status change triggered: Task ${taskId} to ${newStatus}`);
 
-    // Update task status in the parent component
-    onTaskStatusChange(taskId, newStatus);
-    
-    // Immediately update the UI to reflect the change
-    // This creates a more responsive experience even if the server call is still processing
-    const task = tasks.find(t => t.id === taskId);
-    if (task) {
-      // Find task by ID and update its status (optimistic update)
-      const sourceColumn = columns[source.droppableId];
-      const destinationColumn = columns[destination.droppableId];
+    try {
+      // Update task status in the parent component
+      onTaskStatusChange(taskId, newStatus);
       
-      if (sourceColumn && destinationColumn) {
-        // Remove from source column
-        sourceColumn.taskIds = sourceColumn.taskIds.filter(id => id !== taskId);
+      // Immediately update the UI to reflect the change (optimistic update)
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        // Find task by ID and update its status
+        const sourceColumn = columns[source.droppableId];
+        const destinationColumn = columns[destination.droppableId];
         
-        // Add to destination column
-        destinationColumn.taskIds.push(taskId);
+        if (sourceColumn && destinationColumn) {
+          // Remove from source column
+          sourceColumn.taskIds = sourceColumn.taskIds.filter(id => id !== taskId);
+          
+          // Add to destination column at the proper index
+          const newTaskIds = Array.from(destinationColumn.taskIds);
+          newTaskIds.splice(destination.index, 0, taskId);
+          destinationColumn.taskIds = newTaskIds;
+        }
       }
+    } catch (error) {
+      console.error("Error updating task status:", error);
+      // Optionally implement a visual feedback for error
     }
   };
 
@@ -208,13 +214,14 @@ export function KanbanBoard({
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className={cn(
-                      "flex-1 min-h-[300px] p-3 border rounded-b-md space-y-3 transition-all",
+                      "flex-1 min-h-[300px] p-3 border rounded-b-md space-y-3 transition-all duration-200",
                       column.id === "TODO" && "border-blue-200 dark:border-blue-800",
                       column.id === "IN_PROGRESS" && "border-amber-200 dark:border-amber-800",
                       column.id === "COMPLETED" && "border-green-200 dark:border-green-800",
-                      snapshot.isDraggingOver && column.id === "TODO" && "bg-blue-50/70 dark:bg-blue-900/30",
-                      snapshot.isDraggingOver && column.id === "IN_PROGRESS" && "bg-amber-50/70 dark:bg-amber-900/30",
-                      snapshot.isDraggingOver && column.id === "COMPLETED" && "bg-green-50/70 dark:bg-green-900/30",
+                      snapshot.isDraggingOver && "ring-2 ring-inset shadow-inner",
+                      snapshot.isDraggingOver && column.id === "TODO" && "bg-blue-50/70 dark:bg-blue-900/30 ring-blue-300",
+                      snapshot.isDraggingOver && column.id === "IN_PROGRESS" && "bg-amber-50/70 dark:bg-amber-900/30 ring-amber-300",
+                      snapshot.isDraggingOver && column.id === "COMPLETED" && "bg-green-50/70 dark:bg-green-900/30 ring-green-300",
                       !snapshot.isDraggingOver && "bg-card/50"
                     )}
                   >
@@ -255,23 +262,41 @@ export function KanbanBoard({
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
                                 className={cn(
-                                  "mb-2 hover:shadow-md hover:translate-y-[-2px] transition-all border-l-4 cursor-grab",
+                                  "mb-2 group relative border-l-4 cursor-grab transition-all duration-200",
+                                  "hover:shadow-md hover:translate-y-[-2px]",
                                   task.priority === "HIGH" && "border-l-red-400",
                                   task.priority === "MEDIUM" && "border-l-amber-400",
                                   task.priority === "LOW" && "border-l-green-400",
                                   isOverdue && "border-red-500 dark:border-red-700",
-                                  snapshot.isDragging && "shadow-lg scale-[1.02] cursor-grabbing border-2 border-primary/30",
+                                  snapshot.isDragging && "shadow-lg scale-[1.02] cursor-grabbing border-2 border-primary/30 z-50",
                                   task.status === "COMPLETED" && "opacity-70"
                                 )}
                               >
-                                <CardContent className="p-3">
+                                <CardContent className="p-3 relative">
+                                  {/* Quick action buttons that appear on hover */}
+                                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="h-6 w-6 hover:bg-secondary"
+                                      onClick={() => onTaskSelect(task)}
+                                    >
+                                      <PenLine className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                   <div className="flex items-start gap-2">
                                     <Checkbox 
                                       checked={task.status === "COMPLETED"} 
-                                      onCheckedChange={(checked) => 
-                                        onTaskStatusChange(task.id, checked ? "COMPLETED" : "TODO")
-                                      }
-                                      className="mt-1"
+                                      onCheckedChange={(checked) => {
+                                        try {
+                                          const newStatus = checked ? "COMPLETED" : "TODO";
+                                          console.log(`Checkbox change: Task ${task.id} to ${newStatus}`);
+                                          onTaskStatusChange(task.id, newStatus);
+                                        } catch (error) {
+                                          console.error("Error updating task status via checkbox:", error);
+                                        }
+                                      }}
+                                      className="mt-1 h-4 w-4"
                                     />
                                     <div className="flex-1">
                                       <div className="flex justify-between items-start">
@@ -327,16 +352,12 @@ export function KanbanBoard({
                                             )}
                                           </div>
                                           
-                                          <div className="flex gap-1">
-                                            <Button 
-                                              variant="ghost" 
-                                              size="icon"
-                                              className="h-6 w-6 hover:bg-secondary"
-                                              onClick={() => onTaskSelect(task)}
-                                            >
-                                              <PenLine className="h-3 w-3" />
-                                            </Button>
-                                          </div>
+                                          {/* The main edit button is now in the top-right hover menu */}
+                                          {task.projectId && (
+                                            <div className="text-[10px] text-muted-foreground">
+                                              ID: {task.id.substring(0, 4)}
+                                            </div>
+                                          )}
                                         </div>
                                       </div>
                                     </div>
