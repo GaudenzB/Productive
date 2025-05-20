@@ -12,7 +12,7 @@ import {
   Tag, 
   InsertTag
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, and, desc } from "drizzle-orm";
 import { users, tasks, projects, meetings, notes, tags } from "@shared/schema";
 import session from "express-session";
@@ -24,7 +24,7 @@ const PgStore = connectPgSimple(session);
 
 // Define storage interface
 export interface IStorage {
-  sessionStore: session.Store;
+  sessionStore: any; // Using any to accommodate both memory and PG stores
   
   // User methods
   getUser(id: string): Promise<User | undefined>;
@@ -345,18 +345,15 @@ export class MemStorage implements IStorage {
 
 // Database storage implementation for production
 export class DatabaseStorage implements IStorage {
-  sessionStore: ReturnType<typeof createMemoryStore>;
+  sessionStore: session.Store;
   
   constructor() {
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // 24 hours
+    // Use PostgreSQL for session storage
+    this.sessionStore = new PgStore({
+      pool: pool,
+      createTableIfMissing: true,
+      tableName: 'session'
     });
-    
-    // In production with PostgreSQL, we'd use connect-pg-simple for the session store
-    // this.sessionStore = new PostgresSessionStore({
-    //   pool: pool,
-    //   createTableIfMissing: true
-    // });
   }
   
   // User methods
