@@ -17,12 +17,14 @@ import { eq, and, desc } from "drizzle-orm";
 import { users, tasks, projects, meetings, notes, tags } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
 
 const MemoryStore = createMemoryStore(session);
+const PgStore = connectPgSimple(session);
 
 // Define storage interface
 export interface IStorage {
-  sessionStore: ReturnType<typeof createMemoryStore>;
+  sessionStore: session.Store;
   
   // User methods
   getUser(id: string): Promise<User | undefined>;
@@ -535,6 +537,7 @@ export class DatabaseStorage implements IStorage {
 }
 
 // Use MemStorage for development and DatabaseStorage for production
-export const storage: IStorage = process.env.NODE_ENV === "production" && process.env.DATABASE_URL
+// Use DatabaseStorage if DATABASE_URL is available, otherwise fall back to MemStorage
+export const storage: IStorage = process.env.DATABASE_URL
   ? new DatabaseStorage()
   : new MemStorage();
