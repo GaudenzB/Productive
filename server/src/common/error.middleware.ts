@@ -1,22 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { logger } from './logger';
-import { sendError } from './response';
-import { 
-  DatabaseError, 
-  RecordNotFoundError,
-  UniqueConstraintError,
-  ForeignKeyError,
-  ConnectionError
-} from './db-errors';
 
 /**
  * Global error handling middleware
- * Catches all uncaught errors and formats them consistently
  */
-export function errorHandlerMiddleware(
-  error: Error, 
+export function errorHandler(
+  err: Error, 
   req: Request, 
   res: Response, 
   next: NextFunction
@@ -24,76 +14,38 @@ export function errorHandlerMiddleware(
   // Get request information for logging
   const { method, originalUrl } = req;
   
-  // Log the error with appropriate context
-  logger.error(
-    `Error in ${method} ${originalUrl}: ${error.message}`,
-    error,
-    { requestId: req.id }
-  );
+  // Log the error
+  console.error(`Error in ${method} ${originalUrl}: ${err.message}`, err);
 
-  // Handle ZodError separately to format validation errors nicely
-  if (error instanceof ZodError) {
-    const validationError = fromZodError(error);
+  // Handle ZodError separately to format validation errors
+  if (err instanceof ZodError) {
+    const validationError = fromZodError(err);
     
-    const details = error.errors.map(err => ({
+    const details = err.errors.map(err => ({
       path: err.path.join('.'),
       message: err.message,
     }));
     
-    return sendError(res, validationError.message, 400, { errors: details });
-  }
-  
-  // Handle database errors
-  if (error instanceof DatabaseError) {
-    // Map different database error types to appropriate HTTP status codes
-    if (error instanceof RecordNotFoundError) {
-      return sendError(res, error, 404);
-    }
-    
-    if (error instanceof UniqueConstraintError) {
-      return sendError(res, error, 409);
-    }
-    
-    if (error instanceof ForeignKeyError) {
-      return sendError(res, error, 400);
-    }
-    
-    if (error instanceof ConnectionError) {
-      return sendError(res, 'Database connection error. Please try again later.', 503);
-    }
-    
-    // Generic database error
-    return sendError(res, 'Database error occurred', 500);
+    return res.status(400).json({ 
+      error: {
+        message: validationError.message,
+        details
+      }
+    });
   }
   
   // Handle known error types with specific status codes
-  
-  // Authentication errors
-  if (error.name === 'UnauthorizedError') {
-    return sendError(res, 'Authentication required', 401);
-  }
-  
-  if (error.name === 'ForbiddenError') {
-    return sendError(res, 'Insufficient permissions', 403);
-  }
-  
-  // Rate limiting
-  if (error.name === 'RateLimitError') {
-    return sendError(res, 'Too many requests', 429);
-  }
-  
-  // Parse error from request body
-  if (error instanceof SyntaxError && 'body' in error) {
-    return sendError(res, 'Invalid JSON in request body', 400);
-  }
-  
-  // Default error response
-  // In production, don't expose internal error details
-  const isDev = process.env.NODE_ENV !== 'production';
-  const message = isDev ? error.message : 'Internal server error';
+  const status = 'statusCode' in err ? (err as any).statusCode : 500;
+  const message = err.message || "Internal Server Error";
   
   // Include stack trace only in development
-  const details = isDev ? { stack: error.stack } : undefined;
+  const isDev = process.env.NODE_ENV !== 'production';
+  const details = isDev ? { stack: err.stack } : undefined;
   
-  return sendError(res, message, 500, details);
+  return res.status(status).json({
+    error: {
+      message,
+      ...(details ? { details } : {})
+    }
+  });
 }

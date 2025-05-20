@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { setupVite, serveStatic, log } from "./vite";
-import { httpServer, app as apiApp } from "./src/index";
+import { createServer } from "http";
+import { registerRoutes } from "./routes";
 
 const app = express();
 app.use(express.json());
@@ -37,10 +38,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Mount the API application
-app.use(apiApp);
-
 (async () => {
+  // Register routes from routes.ts
+  const httpServer = await registerRoutes(app);
+
   // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -57,24 +58,20 @@ app.use(apiApp);
     console.error(err);
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Setup Vite for frontend
   if (app.get("env") === "development") {
     await setupVite(app, httpServer);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
+  // Start server
   const port = 5000;
   httpServer.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`Server running on port ${port}`);
   });
 })();

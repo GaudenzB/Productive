@@ -23,18 +23,18 @@ export function requestLoggerMiddleware(req: Request, res: Response, next: NextF
   // Log the incoming request
   console.log(`[${req.id}] ${req.method} ${req.originalUrl}`);
   
-  // Track the original end method
+  // Track the original response methods
   const originalEnd = res.end;
   
-  // Override the end method to log response information
-  res.end = function(chunk?: any, encoding?: string) {
+  // Override the end method to log response information before the response completes
+  res.end = function(this: Response, ...args: any[]) {
     const duration = Date.now() - (req.startTime || 0);
     
     // Log the response information
     console.log(`[${req.id}] ${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
     
-    // Call the original end method with the same arguments
-    return originalEnd.apply(res, arguments as any);
+    // Call the original end method
+    return originalEnd.apply(this, args);
   };
   
   next();
