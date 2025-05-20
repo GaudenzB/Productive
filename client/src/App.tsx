@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Tasks from "@/pages/tasks-fixed";
+import TasksKanban from "@/pages/tasks-kanban";
 import Projects from "@/pages/projects";
 import Meetings from "@/pages/meetings";
 import Notes from "@/pages/notes";
@@ -21,6 +22,7 @@ function Router() {
     <Switch>
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/tasks" component={Tasks} />
+      <ProtectedRoute path="/tasks-kanban" component={TasksKanban} />
       <ProtectedRoute path="/projects" component={Projects} />
       <ProtectedRoute path="/meetings" component={Meetings} />
       <ProtectedRoute path="/notes" component={Notes} />
