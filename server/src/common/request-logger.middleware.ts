@@ -112,11 +112,11 @@ export function requestLoggerMiddleware(req: Request, res: Response, next: NextF
     // Call original end method with the correct arguments
     if (typeof chunk !== 'undefined') {
       if (typeof encoding !== 'undefined') {
-        return originalEnd.apply(res, [chunk, encoding]);
+        return originalEnd.apply(res, [chunk, encoding, cb]);
       }
-      return originalEnd.apply(res, [chunk]);
+      return originalEnd.apply(res, [chunk, 'utf-8', cb]);
     }
-    return originalEnd.apply(res, []);
+    return originalEnd.apply(res, [null, 'utf-8', cb]);
   };
   
   next();

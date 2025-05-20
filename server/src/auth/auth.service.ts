@@ -2,7 +2,7 @@ import { db } from '../common/db';
 import { users } from '@shared/schema';
 import { User, InsertUser } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { NotFoundError, UnauthorizedError } from '../common/error.middleware';
+import { NotFoundError, UnauthorizedError, ConflictError } from '../common/custom-errors';
 import { scrypt, randomBytes, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
@@ -42,7 +42,7 @@ export class AuthService {
     // Check if user already exists
     const existingUser = await this.getUserByEmail(userData.email);
     if (existingUser) {
-      throw new Error('User with this email already exists');
+      throw new ConflictError('User with this email already exists');
     }
 
     // Hash the password
