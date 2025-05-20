@@ -43,6 +43,7 @@ export default function AuthPage() {
       password: "",
       confirmPassword: "",
     },
+    mode: "onChange"
   });
 
   // Redirect to dashboard if user is already logged in
@@ -100,15 +101,17 @@ export default function AuthPage() {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel htmlFor="login-email">Email</FormLabel>
                           <FormControl>
                             <Input 
+                              id="login-email"
                               placeholder="Enter your email"
                               type="email"
+                              aria-describedby="login-email-error"
                               {...field}
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage id="login-email-error" />
                         </FormItem>
                       )}
                     />
@@ -117,15 +120,17 @@ export default function AuthPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
+                          <FormLabel htmlFor="login-password">Password</FormLabel>
                           <FormControl>
                             <Input 
+                              id="login-password"
                               placeholder="Enter your password" 
                               type="password"
+                              aria-describedby="login-password-error"
                               {...field}
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage id="login-password-error" />
                         </FormItem>
                       )}
                     />
@@ -147,14 +152,20 @@ export default function AuthPage() {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Name</FormLabel>
+                          <FormLabel htmlFor="register-name">Name</FormLabel>
                           <FormControl>
                             <Input 
+                              id="register-name"
                               placeholder="Enter your name"
-                              {...field}
+                              aria-describedby="register-name-error"
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage id="register-name-error" />
                         </FormItem>
                       )}
                     />
@@ -163,15 +174,17 @@ export default function AuthPage() {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel htmlFor="register-email">Email</FormLabel>
                           <FormControl>
                             <Input 
+                              id="register-email"
                               placeholder="Enter your email"
                               type="email"
+                              aria-describedby="register-email-error"
                               {...field}
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage id="register-email-error" />
                         </FormItem>
                       )}
                     />
@@ -180,15 +193,17 @@ export default function AuthPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
+                          <FormLabel htmlFor="register-password">Password</FormLabel>
                           <FormControl>
                             <Input 
+                              id="register-password"
                               placeholder="Create a password" 
                               type="password"
+                              aria-describedby="register-password-error"
                               {...field}
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage id="register-password-error" />
                         </FormItem>
                       )}
                     />
@@ -197,15 +212,17 @@ export default function AuthPage() {
                       name="confirmPassword"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Confirm Password</FormLabel>
+                          <FormLabel htmlFor="register-confirm-password">Confirm Password</FormLabel>
                           <FormControl>
                             <Input 
+                              id="register-confirm-password"
                               placeholder="Confirm your password" 
                               type="password"
+                              aria-describedby="register-confirm-password-error"
                               {...field}
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage id="register-confirm-password-error" />
                         </FormItem>
                       )}
                     />
