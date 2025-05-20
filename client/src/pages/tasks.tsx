@@ -194,7 +194,18 @@ export default function Tasks() {
   
   // Handlers
   const onCreateSubmit = (data: z.infer<typeof taskFormSchema>) => {
-    createTaskMutation.mutate(data as InsertTask);
+    // First create the task
+    createTaskMutation.mutate({
+      title: data.title,
+      description: data.description,
+      status: data.status,
+      priority: data.priority,
+      dueDate: data.dueDate,
+      projectId: data.projectId,
+    } as InsertTask);
+    
+    // Handle tags separately after task is created
+    // This is handled in the onSuccess callback
   };
   
   const onUpdateSubmit = (data: z.infer<typeof taskFormSchema>) => {
@@ -740,14 +751,30 @@ export default function Tasks() {
                         </div>
                         
                         <div className="flex justify-between items-center mt-3">
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            {task.dueDate && (
-                              <span>Due: {format(new Date(task.dueDate), "MMM d, yyyy")}</span>
-                            )}
-                            {task.projectId && projects && (
-                              <span>
-                                Project: {projects.find(p => p.id === task.projectId)?.title}
-                              </span>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              {task.dueDate && (
+                                <span>Due: {format(new Date(task.dueDate), "MMM d, yyyy")}</span>
+                              )}
+                              {task.projectId && projects && (
+                                <span>
+                                  Project: {projects.find(p => p.id === task.projectId)?.title}
+                                </span>
+                              )}
+                            </div>
+                            
+                            {/* Show task tags */}
+                            {tags && taskTags && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {getTaskTags(task.id).map(tag => (
+                                  <TagBadge 
+                                    key={tag.id} 
+                                    name={tag.name} 
+                                    color={tag.color} 
+                                    className="mr-1"
+                                  />
+                                ))}
+                              </div>
                             )}
                           </div>
                           <Dialog>
