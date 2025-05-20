@@ -9,14 +9,17 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { insertUserSchema } from "@shared/schema";
+import { InsertUser } from "@shared/schema";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
-const registerSchema = insertUserSchema.extend({
+const registerSchema = z.object({
+  name: z.string().optional().default(""),
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
   confirmPassword: z.string().min(6, { message: "Password must be at least 6 characters" }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
@@ -70,7 +73,14 @@ export default function AuthPage() {
 
   function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
     const { confirmPassword, ...userData } = values;
-    registerMutation.mutate(userData, {
+    const userToCreate: InsertUser = {
+      email: userData.email,
+      password: userData.password,
+      name: userData.name || null,
+      image: null
+    };
+    
+    registerMutation.mutate(userToCreate, {
       onSuccess: () => {
         navigate('/');
       }
