@@ -671,8 +671,14 @@ export default function Tasks() {
             </div>
           </div>
           
+          {/* Tag Dialog Component */}
+          <TagDialog
+            open={isTagDialogOpen}
+            onOpenChange={setIsTagDialogOpen}
+          />
+          
           {/* Active Filters Display */}
-          {(statusFilter || priorityFilter || projectFilter || searchQuery) && (
+          {(statusFilter || priorityFilter || projectFilter || tagFilter || searchQuery) && (
             <div className="mb-4 flex flex-wrap gap-2 items-center">
               <span className="text-sm text-muted-foreground">Active filters:</span>
               
@@ -683,6 +689,19 @@ export default function Tasks() {
                     onClick={() => setSearchQuery("")}
                     className="ml-1 hover:text-destructive"
                     aria-label="Clear search filter"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+              
+              {tagFilter && tags && (
+                <div className="bg-secondary-foreground/10 text-sm rounded-full px-3 py-1 flex items-center gap-1">
+                  <span>Tag: {tags.find(t => t.id === tagFilter)?.name}</span>
+                  <button 
+                    onClick={() => setTagFilter(null)}
+                    className="ml-1 hover:text-destructive"
+                    aria-label="Clear tag filter"
                   >
                     ×
                   </button>
