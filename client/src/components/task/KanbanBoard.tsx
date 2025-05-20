@@ -226,16 +226,23 @@ export function KanbanBoard({
                     )}
                   >
                     {column.taskIds.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                        <div className={cn(
-                          "w-12 h-12 rounded-full mb-3 flex items-center justify-center",
-                          column.id === "TODO" && "bg-blue-100 dark:bg-blue-900/30",
-                          column.id === "IN_PROGRESS" && "bg-amber-100 dark:bg-amber-900/30",
-                          column.id === "COMPLETED" && "bg-green-100 dark:bg-green-900/30"
-                        )}>
-                          {column.id === "TODO" && <span className="text-2xl">📋</span>}
-                          {column.id === "IN_PROGRESS" && <span className="text-2xl">⚙️</span>}
-                          {column.id === "COMPLETED" && <span className="text-2xl">✅</span>}
+                      <div 
+                        className="flex flex-col items-center justify-center h-full text-center p-4"
+                        aria-label={`Empty ${column.title} column`}
+                      >
+                        <div 
+                          className={cn(
+                            "w-12 h-12 rounded-full mb-3 flex items-center justify-center",
+                            column.id === "TODO" && "bg-blue-100 dark:bg-blue-900/30",
+                            column.id === "IN_PROGRESS" && "bg-amber-100 dark:bg-amber-900/30",
+                            column.id === "COMPLETED" && "bg-green-100 dark:bg-green-900/30"
+                          )}
+                          role="img"
+                          aria-hidden="true"
+                        >
+                          {column.id === "TODO" && <span className="text-2xl" aria-hidden="true">📋</span>}
+                          {column.id === "IN_PROGRESS" && <span className="text-2xl" aria-hidden="true">⚙️</span>}
+                          {column.id === "COMPLETED" && <span className="text-2xl" aria-hidden="true">✅</span>}
                         </div>
                         <p className="text-sm font-medium mb-1">No {column.title} Tasks</p>
                         <p className="text-xs text-muted-foreground max-w-[200px]">
@@ -264,6 +271,7 @@ export function KanbanBoard({
                                 className={cn(
                                   "mb-2 group relative border-l-4 cursor-grab transition-all duration-200",
                                   "hover:shadow-md hover:translate-y-[-2px]",
+                                  "focus:ring-2 focus:ring-primary focus:outline-none",
                                   task.priority === "HIGH" && "border-l-red-400",
                                   task.priority === "MEDIUM" && "border-l-amber-400",
                                   task.priority === "LOW" && "border-l-green-400",
@@ -271,6 +279,22 @@ export function KanbanBoard({
                                   snapshot.isDragging && "shadow-lg scale-[1.02] cursor-grabbing border-2 border-primary/30 z-50",
                                   task.status === "COMPLETED" && "opacity-70"
                                 )}
+                                tabIndex={0}
+                                role="article"
+                                aria-labelledby={`task-title-${task.id}`}
+                                onKeyDown={(e) => {
+                                  // Enter or Space to edit
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onTaskSelect(task);
+                                  }
+                                  // C to toggle completion
+                                  else if (e.key.toLowerCase() === 'c') {
+                                    e.preventDefault();
+                                    const newStatus = task.status === "COMPLETED" ? "TODO" : "COMPLETED";
+                                    onTaskStatusChange(task.id, newStatus);
+                                  }
+                                }}
                               >
                                 <CardContent className="p-3 relative">
                                   {/* Quick action buttons that appear on hover */}
@@ -280,12 +304,15 @@ export function KanbanBoard({
                                       size="icon"
                                       className="h-6 w-6 hover:bg-secondary"
                                       onClick={() => onTaskSelect(task)}
+                                      aria-label={`Edit task: ${task.title}`}
+                                      title="Edit task"
                                     >
                                       <PenLine className="h-3 w-3" />
                                     </Button>
                                   </div>
                                   <div className="flex items-start gap-2">
                                     <Checkbox 
+                                      id={`task-checkbox-${task.id}`}
                                       checked={task.status === "COMPLETED"} 
                                       onCheckedChange={(checked) => {
                                         try {
@@ -297,18 +324,25 @@ export function KanbanBoard({
                                         }
                                       }}
                                       className="mt-1 h-4 w-4"
+                                      aria-label={`Mark task ${task.title} as ${task.status === "COMPLETED" ? "incomplete" : "complete"}`}
                                     />
                                     <div className="flex-1">
                                       <div className="flex justify-between items-start">
                                         <div className="flex-1 pr-2">
-                                          <h3 className={cn(
-                                            "font-medium text-sm",
-                                            task.status === "COMPLETED" && "line-through text-muted-foreground"
-                                          )}>
+                                          <h3 
+                                            id={`task-title-${task.id}`}
+                                            className={cn(
+                                              "font-medium text-sm",
+                                              task.status === "COMPLETED" && "line-through text-muted-foreground"
+                                            )}
+                                          >
                                             {task.title}
                                           </h3>
                                           {task.description && (
-                                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                            <p 
+                                              id={`task-desc-${task.id}`}
+                                              className="text-xs text-muted-foreground mt-1 line-clamp-2"
+                                            >
                                               {task.description}
                                             </p>
                                           )}
