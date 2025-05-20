@@ -28,6 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { ErrorSuggestionCard } from "./ErrorSuggestionCard";
 
+
 export function ErrorMonitoringDashboard() {
   const [errors, setErrors] = useState<EnhancedError[]>([]);
   const [stats, setStats] = useState({
@@ -155,7 +156,12 @@ export function ErrorMonitoringDashboard() {
                   </div>
                   <span className="text-xs">{stats.bySeverity[ErrorSeverity.CRITICAL]}</span>
                 </div>
-                <Progress value={calculatePercentage(stats.bySeverity[ErrorSeverity.CRITICAL])} className="h-1 bg-destructive/20" indicatorClassName="bg-destructive" />
+                <div className="h-1 bg-destructive/20 w-full rounded-full overflow-hidden">
+                  <div 
+                    className="bg-destructive h-full" 
+                    style={{ width: `${calculatePercentage(stats.bySeverity[ErrorSeverity.CRITICAL])}%` }}
+                  />
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
@@ -165,17 +171,27 @@ export function ErrorMonitoringDashboard() {
                   </div>
                   <span className="text-xs">{stats.bySeverity[ErrorSeverity.ERROR]}</span>
                 </div>
-                <Progress value={calculatePercentage(stats.bySeverity[ErrorSeverity.ERROR])} className="h-1 bg-destructive/10" indicatorClassName="bg-destructive/80" />
+                <div className="h-1 bg-destructive/10 w-full rounded-full overflow-hidden">
+                  <div 
+                    className="bg-destructive/80 h-full" 
+                    style={{ width: `${calculatePercentage(stats.bySeverity[ErrorSeverity.ERROR])}%` }}
+                  />
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3 text-warning" />
+                    <AlertTriangle className="h-3 w-3 text-orange-500" />
                     <span className="text-xs">Warning</span>
                   </div>
                   <span className="text-xs">{stats.bySeverity[ErrorSeverity.WARNING]}</span>
                 </div>
-                <Progress value={calculatePercentage(stats.bySeverity[ErrorSeverity.WARNING])} className="h-1 bg-warning/20" indicatorClassName="bg-warning" />
+                <div className="h-1 bg-orange-200 w-full rounded-full overflow-hidden">
+                  <div 
+                    className="bg-orange-500 h-full" 
+                    style={{ width: `${calculatePercentage(stats.bySeverity[ErrorSeverity.WARNING])}%` }}
+                  />
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
@@ -185,7 +201,12 @@ export function ErrorMonitoringDashboard() {
                   </div>
                   <span className="text-xs">{stats.bySeverity[ErrorSeverity.INFO]}</span>
                 </div>
-                <Progress value={calculatePercentage(stats.bySeverity[ErrorSeverity.INFO])} className="h-1 bg-primary/20" indicatorClassName="bg-primary" />
+                <div className="h-1 bg-primary/20 w-full rounded-full overflow-hidden">
+                  <div 
+                    className="bg-primary h-full" 
+                    style={{ width: `${calculatePercentage(stats.bySeverity[ErrorSeverity.INFO])}%` }}
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
