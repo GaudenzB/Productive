@@ -15,14 +15,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PriorityBadge } from "@/components/ui/priority-badge";
+import { TagBadge } from "@/components/ui/tag-badge";
+import { TagSelector } from "@/components/ui/tag-selector";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-import { InsertTask, Task, Project } from "@shared/schema";
+import { InsertTask, Task, Project, Tag, TaskTag, InsertTaskTag } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { CalendarIcon, Plus, Filter, Search } from "lucide-react";
+import { CalendarIcon, Plus, Filter, Search, Tag as TagIcon } from "lucide-react";
 
 // Task form schema
 const taskFormSchema = z.object({
@@ -32,6 +34,7 @@ const taskFormSchema = z.object({
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
   dueDate: z.date().optional().nullable(),
   projectId: z.string().optional().nullable(),
+  tagIds: z.array(z.string()).optional().default([]),
 });
 
 export default function Tasks() {
@@ -43,6 +46,9 @@ export default function Tasks() {
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isTagDialogOpen, setIsTagDialogOpen] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
   const { toast } = useToast();
   
   // Queries
@@ -54,6 +60,24 @@ export default function Tasks() {
     queryKey: ['/api/projects'],
   });
   
+  const { data: tags } = useQuery<Tag[]>({
+    queryKey: ['/api/tags'],
+  });
+  
+  // Fetch task tags
+  const { data: taskTags } = useQuery<TaskTag[]>({
+    queryKey: ['/api/task-tags'],
+  });
+  
+  // Helper function to get tags for a task
+  const getTaskTags = (taskId: string) => {
+    if (!taskTags || !tags) return [];
+    const taskTagIds = taskTags
+      .filter(tt => tt.taskId === taskId)
+      .map(tt => tt.tagId);
+    return tags.filter(tag => taskTagIds.includes(tag.id));
+  };
+
   // Filter tasks based on search and filters
   const filteredTasks = tasks ? tasks.filter(task => {
     // Match search query
@@ -70,7 +94,12 @@ export default function Tasks() {
     // Match project filter
     const matchesProject = !projectFilter || task.projectId === projectFilter;
     
-    return matchesSearch && matchesStatus && matchesPriority && matchesProject;
+    // Match tag filter
+    const matchesTag = !tagFilter || (taskTags && taskTags.some(tt => 
+      tt.taskId === task.id && tt.tagId === tagFilter
+    ));
+    
+    return matchesSearch && matchesStatus && matchesPriority && matchesProject && matchesTag;
   }) : [];
   
   // Form
@@ -83,6 +112,7 @@ export default function Tasks() {
       priority: "MEDIUM",
       dueDate: null,
       projectId: null,
+      tagIds: [],
     },
   });
   

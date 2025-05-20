@@ -113,3 +113,6 @@ export type InsertNote = z.infer<typeof insertNoteSchema>;
 
 export type Tag = typeof tags.$inferSelect;
 export type InsertTag = z.infer<typeof insertTagSchema>;
+
+export type TaskTag = typeof taskTags.$inferSelect;
+export type InsertTaskTag = z.infer<typeof insertTaskTagSchema>;
