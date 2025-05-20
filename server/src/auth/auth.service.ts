@@ -1,8 +1,7 @@
-import { db } from '../common/db';
+import { db } from '../../db';
 import { users } from '@shared/schema';
 import { User, InsertUser } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { NotFoundError, UnauthorizedError, ConflictError } from '../common/custom-errors';
 import { scrypt, randomBytes, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
@@ -27,7 +26,7 @@ export class AuthService {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     
     if (!user) {
-      throw new NotFoundError(`User with id ${id} not found`);
+      throw new Error(`User with id ${id} not found`);
     }
     
     return user;
