@@ -1,137 +1,129 @@
-import { APIError, BadRequestError, NotFoundError } from './error.middleware';
-
 /**
- * Database Error class for handling database-specific errors
- * Extends the base APIError class with database-specific error codes and messages
+ * Custom error classes for database operations
+ * These provide more context and better error messages
  */
-export class DatabaseError extends APIError {
-  constructor(message: string = 'Database error', statusCode: number = 500) {
-    super(message, statusCode);
+
+// Base class for all database-related errors
+export class DatabaseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DatabaseError';
   }
 }
 
-/**
- * Connection Error for database connection issues
- */
-export class DatabaseConnectionError extends DatabaseError {
-  constructor(message: string = 'Database connection error') {
-    super(message, 503); // Service Unavailable
-  }
-}
-
-/**
- * Query Error for issues with database queries
- */
-export class DatabaseQueryError extends DatabaseError {
-  constructor(message: string = 'Database query error') {
-    super(message, 500);
-  }
-}
-
-/**
- * Record Not Found Error for when a database record is not found
- */
-export class RecordNotFoundError extends NotFoundError {
+// Error for when a record is not found
+export class RecordNotFoundError extends DatabaseError {
   constructor(entity: string, id: string) {
-    super(`${entity} with id ${id} not found`);
+    super(`${entity} with ID ${id} not found`);
+    this.name = 'RecordNotFoundError';
+  }
+}
+
+// Error for duplicate key violations
+export class UniqueConstraintError extends DatabaseError {
+  constructor(entity: string, field: string, value: string) {
+    super(`${entity} with ${field} "${value}" already exists`);
+    this.name = 'UniqueConstraintError';
+  }
+}
+
+// Error for foreign key violations
+export class ForeignKeyError extends DatabaseError {
+  constructor(entity: string, field: string, relatedEntity: string) {
+    super(`Referenced ${relatedEntity} in ${entity}.${field} does not exist`);
+    this.name = 'ForeignKeyError';
+  }
+}
+
+// Error for check constraint violations
+export class CheckConstraintError extends DatabaseError {
+  constructor(entity: string, constraint: string) {
+    super(`Check constraint "${constraint}" violated for ${entity}`);
+    this.name = 'CheckConstraintError';
+  }
+}
+
+// Error for connection issues
+export class ConnectionError extends DatabaseError {
+  constructor(detail?: string) {
+    super(`Database connection failed${detail ? `: ${detail}` : ''}`);
+    this.name = 'ConnectionError';
+  }
+}
+
+// Error for query timeout
+export class QueryTimeoutError extends DatabaseError {
+  constructor() {
+    super('Database query timed out');
+    this.name = 'QueryTimeoutError';
   }
 }
 
 /**
- * Unique Constraint Error for when a unique constraint is violated
- */
-export class UniqueConstraintError extends BadRequestError {
-  constructor(field: string) {
-    super(`${field} already exists`);
-  }
-}
-
-/**
- * Foreign Key Error for when a foreign key constraint is violated
- */
-export class ForeignKeyError extends BadRequestError {
-  constructor(relation: string) {
-    super(`Referenced ${relation} does not exist`);
-  }
-}
-
-/**
- * Handle database errors and convert them to appropriate API errors
- * This function takes a generic database error and converts it to a specific API error
- * based on the error code or message
+ * Map database errors to more user-friendly API errors
+ * This function analyzes the database error and converts it to a more specific error type
  * 
- * @param error The database error to handle
- * @returns An appropriate APIError instance
+ * @param error The original database error
+ * @returns A more specific error type
  */
-export function handleDatabaseError(error: any): APIError {
-  // Check if it's already an APIError
-  if (error instanceof APIError) {
+export function handleDatabaseError(error: any): Error {
+  // If it's already a custom error, return it
+  if (error instanceof DatabaseError) {
     return error;
   }
 
-  // Check for specific PostgreSQL error codes
-  // https://www.postgresql.org/docs/current/errcodes-appendix.html
-  if (error.code) {
-    switch (error.code) {
-      // Connection errors
-      case '08000': // connection_exception
-      case '08003': // connection_does_not_exist
-      case '08006': // connection_failure
-        return new DatabaseConnectionError(error.message || 'Failed to connect to database');
-      
-      // Integrity constraint violations
-      case '23505': // unique_violation
-        const field = extractFieldFromUniqueViolation(error.message);
-        return new UniqueConstraintError(field || 'Record');
-      
-      case '23503': // foreign_key_violation
-        const relation = extractRelationFromForeignKeyViolation(error.message);
-        return new ForeignKeyError(relation || 'related record');
-      
-      case '23502': // not_null_violation
-        const column = error.column || 'Required field';
-        return new BadRequestError(`${column} cannot be null`);
-      
-      // Query errors
-      case '42P01': // undefined_table
-        return new DatabaseQueryError('Table does not exist');
-      
-      case '42703': // undefined_column
-        return new DatabaseQueryError('Column does not exist');
-      
-      default:
-        return new DatabaseError(error.message);
-    }
+  // PostgreSQL error codes: https://www.postgresql.org/docs/current/errcodes-appendix.html
+  const pgErrorCode = error.code;
+  
+  if (!pgErrorCode) {
+    return new DatabaseError(error.message || 'Unknown database error');
   }
 
-  // Handle other types of errors
-  if (error.message?.includes('no rows found')) {
-    return new NotFoundError('Record not found');
+  // Common PostgreSQL error codes
+  switch (pgErrorCode) {
+    // Connection errors (Class 08)
+    case '08000': // connection_exception
+    case '08003': // connection_does_not_exist
+    case '08006': // connection_failure
+    case '08001': // sqlclient_unable_to_establish_sqlconnection
+    case '08004': // sqlserver_rejected_establishment_of_sqlconnection
+      return new ConnectionError(error.detail);
+      
+    // Unique violation (23505)
+    case '23505':
+      const match = error.detail?.match(/Key \((.*?)\)=\((.*?)\) already exists/);
+      if (match) {
+        return new UniqueConstraintError(error.table || 'record', match[1], match[2]);
+      }
+      return new UniqueConstraintError('record', 'unknown', 'value');
+    
+    // Foreign key violation (23503)
+    case '23503':
+      const fkMatch = error.detail?.match(/Key \((.*?)\)=\((.*?)\) is not present in table "(.*?)"/);
+      if (fkMatch) {
+        return new ForeignKeyError(error.table || 'record', fkMatch[1], fkMatch[3]);
+      }
+      return new ForeignKeyError('record', 'unknown', 'referenced table');
+    
+    // Check constraint violation (23514)
+    case '23514':
+      return new CheckConstraintError(error.table || 'record', error.constraint || 'unknown');
+    
+    // Query canceled / timeout (57014)
+    case '57014':
+      return new QueryTimeoutError();
+    
+    // No data / not found (P0002)
+    case 'P0002':
+      const entity = error.table || 'record';
+      const idMatch = error.message?.match(/with ID (\w+)/);
+      const id = idMatch ? idMatch[1] : 'unknown';
+      return new RecordNotFoundError(entity, id);
+    
+    // Default: return a generic database error
+    default:
+      return new DatabaseError(
+        error.message || `Database error: ${pgErrorCode}${error.detail ? ` - ${error.detail}` : ''}`
+      );
   }
-
-  return new DatabaseError(error.message || 'Database operation failed');
-}
-
-/**
- * Extract the field name from a unique constraint violation error
- * 
- * @param message PostgreSQL error message
- * @returns The field name or null if not found
- */
-function extractFieldFromUniqueViolation(message: string): string | null {
-  // Example message: 'duplicate key value violates unique constraint "users_email_key"'
-  const match = /unique constraint ".*?_(\w+)_key"/.exec(message);
-  return match ? match[1] : null;
-}
-
-/**
- * Extract the relation name from a foreign key constraint violation error
- * 
- * @param message PostgreSQL error message
- * @returns The relation name or null if not found
- */
-function extractRelationFromForeignKeyViolation(message: string): string | null {
-  // Example message: 'foreign key constraint "tasks_project_id_fkey" references "projects"'
-  const match = /references "(\w+)"/.exec(message);
-  return match ? match[1] : null;
 }

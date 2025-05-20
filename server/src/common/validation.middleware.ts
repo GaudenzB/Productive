@@ -1,33 +1,60 @@
 import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject, ZodError } from 'zod';
-import { BadRequestError } from './error.middleware';
+import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
+import { sendBadRequest } from './response';
 
 /**
- * Middleware factory that validates request data against a Zod schema
+ * Middleware for validating request data using Zod schemas
+ * 
  * @param schema The Zod schema to validate against
- * @param source Where to find the data to validate ('body', 'query', 'params')
+ * @param source Where to find the data to validate (body, query, params)
  */
-export const validate = (schema: AnyZodObject, source: 'body' | 'query' | 'params' = 'body') => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+export function validate(schema: z.ZodType<any>, source: 'body' | 'query' | 'params' = 'body') {
+  return (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Validate the data against the schema
-      const data = await schema.parseAsync(req[source]);
+      // Validate the request data against the schema
+      const result = schema.safeParse(req[source]);
       
-      // Replace the request data with the validated data
-      req[source] = data;
-      
-      // Continue to the next middleware
-      next();
-    } catch (error) {
-      // Convert Zod validation errors to a more readable format
-      if (error instanceof ZodError) {
-        const validationError = fromZodError(error);
-        return next(new BadRequestError(validationError.message));
+      if (!result.success) {
+        // Convert Zod errors to user-friendly format
+        const validationError = fromZodError(result.error);
+        
+        // Format error details
+        const details = result.error.errors.map(err => ({
+          path: err.path.join('.'),
+          message: err.message,
+        }));
+        
+        // Send formatted error response
+        return sendBadRequest(res, validationError.message, { errors: details });
       }
       
-      // Pass other errors to the error handler
+      // Replace request data with validated and transformed data
+      req[source] = result.data;
+      next();
+    } catch (error) {
       next(error);
     }
   };
-};
+}
+
+/**
+ * Specialized middleware for validating request body
+ */
+export function validateBody(schema: z.ZodType<any>) {
+  return validate(schema, 'body');
+}
+
+/**
+ * Specialized middleware for validating query parameters
+ */
+export function validateQuery(schema: z.ZodType<any>) {
+  return validate(schema, 'query');
+}
+
+/**
+ * Specialized middleware for validating route parameters
+ */
+export function validateParams(schema: z.ZodType<any>) {
+  return validate(schema, 'params');
+}

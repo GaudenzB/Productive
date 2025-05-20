@@ -1,48 +1,41 @@
 import { z } from 'zod';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 
-// Load environment variables from .env file
+// Load environment variables from .env file if present
 dotenv.config();
 
-// Define environment schema with Zod for validation
+// Define schema for environment variables
 const envSchema = z.object({
   // Node environment
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   
   // Server configuration
-  PORT: z.string().default('5000'),
-  
-  // Database configuration - required in production
-  DATABASE_URL: z.string().min(1),
-  
-  // Session secret - generate a strong random value in production
-  SESSION_SECRET: z.string().default('development-secret-key'),
+  PORT: z.coerce.number().default(3000),
+  HOST: z.string().default('0.0.0.0'),
   
   // Session configuration
-  SESSION_EXPIRY: z.string().default('24h').transform((val) => {
-    // Parse duration string to milliseconds
-    if (val.endsWith('d')) return parseInt(val) * 24 * 60 * 60 * 1000;
-    if (val.endsWith('h')) return parseInt(val) * 60 * 60 * 1000;
-    if (val.endsWith('m')) return parseInt(val) * 60 * 1000;
-    if (val.endsWith('s')) return parseInt(val) * 1000;
-    return parseInt(val);
-  }),
+  SESSION_SECRET: z.string().min(1).default('development_secret'),
+  
+  // Database configuration
+  DATABASE_URL: z.string().min(1),
   
   // CORS configuration
   CORS_ORIGIN: z.string().default('*'),
+  
+  // API rate limiting
+  RATE_LIMIT_MAX: z.coerce.number().default(100),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60 * 1000), // 1 minute
+  
+  // Logging
+  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 });
 
-// Extract and parse environment variables
-const _env = envSchema.safeParse(process.env);
+// Extract environment variables and validate against schema
+export const env = envSchema.parse(process.env);
 
-// Handle validation errors
-if (!_env.success) {
-  console.error(
-    '❌ Invalid environment variables:',
-    JSON.stringify(_env.error.format(), null, 2)
-  );
-  process.exit(1);
-}
-
-// Export validated environment variables
-export const env = _env.data;
+// Log startup configuration (but don't show secrets)
+console.info('Environment Configuration:', {
+  NODE_ENV: env.NODE_ENV,
+  PORT: env.PORT,
+  DATABASE_URL: env.DATABASE_URL ? '[REDACTED]' : 'Not provided',
+});

@@ -1,7 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import { TaskService } from './task.service';
-import { UnauthorizedError } from '../common/error.middleware';
+import { Task, InsertTask, insertTaskSchema } from '@shared/schema';
+import { logger } from '../common/logger';
+import { 
+  sendSuccess, 
+  sendCreated, 
+  sendNoContent, 
+  sendNotFound 
+} from '../common/response';
+import { RecordNotFoundError } from '../common/db-errors';
 
+/**
+ * Task Controller
+ * Handles HTTP requests for task operations
+ */
 export class TaskController {
   private taskService: TaskService;
   
@@ -9,100 +21,244 @@ export class TaskController {
     this.taskService = new TaskService();
   }
   
-  getTasks = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Get all tasks for the current user
+   */
+  getAllTasks = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Ensure the user is authenticated
-      if (!req.user || !req.isAuthenticated()) {
-        return next(new UnauthorizedError());
-      }
+      const userId = req.user!.id;
+      const tasks = await this.taskService.getAllForUser(userId);
       
-      // Access the id safely through Express.User interface from passport
-      const tasks = await this.taskService.getTasks(req.user.id);
-      res.json(tasks);
+      sendSuccess(res, tasks);
     } catch (error) {
       next(error);
     }
-  }
+  };
   
-  getTask = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Get tasks due today
+   */
+  getTodaysTasks = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Ensure the user is authenticated
-      if (!req.user || !req.isAuthenticated()) {
-        return next(new UnauthorizedError());
-      }
+      const userId = req.user!.id;
+      const tasks = await this.taskService.getTodaysTasks(userId);
       
-      const task = await this.taskService.getTask(req.params.id);
-      
-      // Ensure the task belongs to the current user
-      if (task.userId !== req.user.id) {
-        return next(new UnauthorizedError());
-      }
-      
-      res.json(task);
+      sendSuccess(res, tasks);
     } catch (error) {
       next(error);
     }
-  }
+  };
   
+  /**
+   * Get overdue tasks
+   */
+  getOverdueTasks = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user!.id;
+      const tasks = await this.taskService.getOverdueTasks(userId);
+      
+      sendSuccess(res, tasks);
+    } catch (error) {
+      next(error);
+    }
+  };
+  
+  /**
+   * Get tasks for a specific project
+   */
+  getTasksByProject = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user!.id;
+      const projectId = req.params.projectId;
+      
+      const tasks = await this.taskService.getByProject(projectId, userId);
+      
+      sendSuccess(res, tasks);
+    } catch (error) {
+      next(error);
+    }
+  };
+  
+  /**
+   * Get a task by ID
+   */
+  getTaskById = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const taskId = req.params.id;
+      
+      try {
+        const task = await this.taskService.getById(taskId);
+        
+        // Check that the task belongs to the current user
+        if (task.userId !== req.user!.id) {
+          return sendNotFound(res);
+        }
+        
+        sendSuccess(res, task);
+      } catch (error) {
+        if (error instanceof RecordNotFoundError) {
+          return sendNotFound(res);
+        }
+        throw error;
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
+  
+  /**
+   * Create a new task
+   */
   createTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Ensure the user is authenticated
-      if (!req.user || !req.isAuthenticated()) {
-        return next(new UnauthorizedError());
-      }
+      const userId = req.user!.id;
       
-      // Add the user ID to the task data
-      const taskData = {
+      // Prepare task data with the current user ID
+      const taskData: InsertTask = {
         ...req.body,
-        userId: req.user.id
+        userId,
       };
       
-      const task = await this.taskService.createTask(taskData);
-      res.status(201).json(task);
+      // Create the task
+      const task = await this.taskService.create(taskData);
+      
+      logger.info(`Task created: ${task.id}`, { 
+        userId, 
+        taskId: task.id,
+        title: task.title 
+      });
+      
+      sendCreated(res, task);
     } catch (error) {
       next(error);
     }
-  }
+  };
   
+  /**
+   * Update a task
+   */
   updateTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Ensure the user is authenticated
-      if (!req.user || !req.isAuthenticated()) {
-        return next(new UnauthorizedError());
+      const taskId = req.params.id;
+      const userId = req.user!.id;
+      
+      // Check that the task exists and belongs to the user
+      try {
+        const existingTask = await this.taskService.getById(taskId);
+        
+        if (existingTask.userId !== userId) {
+          return sendNotFound(res);
+        }
+      } catch (error) {
+        if (error instanceof RecordNotFoundError) {
+          return sendNotFound(res);
+        }
+        throw error;
       }
       
-      // First check if the task belongs to the user
-      const existingTask = await this.taskService.getTask(req.params.id);
+      // Update the task
+      const updatedTask = await this.taskService.update(taskId, req.body);
       
-      if (existingTask.userId !== req.user.id) {
-        return next(new UnauthorizedError());
-      }
+      logger.info(`Task updated: ${taskId}`, { 
+        userId, 
+        taskId,
+        title: updatedTask.title 
+      });
       
-      const updatedTask = await this.taskService.updateTask(req.params.id, req.body);
-      res.json(updatedTask);
+      sendSuccess(res, updatedTask);
     } catch (error) {
       next(error);
     }
-  }
+  };
   
+  /**
+   * Delete a task
+   */
   deleteTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Ensure the user is authenticated
-      if (!req.user || !req.isAuthenticated()) {
-        return next(new UnauthorizedError());
+      const taskId = req.params.id;
+      const userId = req.user!.id;
+      
+      // Check that the task exists and belongs to the user
+      try {
+        const existingTask = await this.taskService.getById(taskId);
+        
+        if (existingTask.userId !== userId) {
+          return sendNotFound(res);
+        }
+      } catch (error) {
+        if (error instanceof RecordNotFoundError) {
+          return sendNotFound(res);
+        }
+        throw error;
       }
       
-      // First check if the task belongs to the user
-      const existingTask = await this.taskService.getTask(req.params.id);
+      // Delete the task
+      await this.taskService.delete(taskId);
       
-      if (existingTask.userId !== req.user.id) {
-        return next(new UnauthorizedError());
-      }
+      logger.info(`Task deleted: ${taskId}`, { userId, taskId });
       
-      await this.taskService.deleteTask(req.params.id);
-      res.status(204).end();
+      sendNoContent(res);
     } catch (error) {
       next(error);
     }
-  }
+  };
+  
+  /**
+   * Mark a task as complete
+   */
+  completeTask = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const taskId = req.params.id;
+      const userId = req.user!.id;
+      
+      try {
+        const updatedTask = await this.taskService.completeTask(taskId, userId);
+        
+        logger.info(`Task completed: ${taskId}`, { 
+          userId, 
+          taskId,
+          title: updatedTask.title 
+        });
+        
+        sendSuccess(res, updatedTask);
+      } catch (error) {
+        if (error instanceof RecordNotFoundError) {
+          return sendNotFound(res);
+        }
+        throw error;
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
+  
+  /**
+   * Mark a task as incomplete
+   */
+  reopenTask = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const taskId = req.params.id;
+      const userId = req.user!.id;
+      
+      try {
+        const updatedTask = await this.taskService.reopenTask(taskId, userId);
+        
+        logger.info(`Task reopened: ${taskId}`, { 
+          userId, 
+          taskId,
+          title: updatedTask.title 
+        });
+        
+        sendSuccess(res, updatedTask);
+      } catch (error) {
+        if (error instanceof RecordNotFoundError) {
+          return sendNotFound(res);
+        }
+        throw error;
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
 }

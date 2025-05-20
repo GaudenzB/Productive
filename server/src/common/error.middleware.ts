@@ -1,66 +1,99 @@
 import { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
+import { fromZodError } from 'zod-validation-error';
+import { logger } from './logger';
+import { sendError } from './response';
+import { 
+  DatabaseError, 
+  RecordNotFoundError,
+  UniqueConstraintError,
+  ForeignKeyError,
+  ConnectionError
+} from './db-errors';
 
-// Define custom error classes
-export class APIError extends Error {
-  statusCode: number;
-  
-  constructor(message: string, statusCode: number = 500) {
-    super(message);
-    this.statusCode = statusCode;
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
-export class NotFoundError extends APIError {
-  constructor(message: string = 'Resource not found') {
-    super(message, 404);
-  }
-}
-
-export class BadRequestError extends APIError {
-  constructor(message: string = 'Bad request') {
-    super(message, 400);
-  }
-}
-
-export class UnauthorizedError extends APIError {
-  constructor(message: string = 'Unauthorized') {
-    super(message, 401);
-  }
-}
-
-export class ForbiddenError extends APIError {
-  constructor(message: string = 'Forbidden') {
-    super(message, 403);
-  }
-}
-
-// Global error handling middleware
-export const errorHandler = (
-  err: Error,
-  req: Request,
-  res: Response,
+/**
+ * Global error handling middleware
+ * Catches all uncaught errors and formats them consistently
+ */
+export function errorHandlerMiddleware(
+  error: Error, 
+  req: Request, 
+  res: Response, 
   next: NextFunction
-) => {
-  console.error(`[Error] ${err.name}: ${err.message}`);
-  console.error(err.stack);
+) {
+  // Get request information for logging
+  const { method, originalUrl } = req;
   
-  // Handle specific known errors
-  if (err instanceof APIError) {
-    return res.status(err.statusCode).json({
-      error: {
-        code: err.statusCode,
-        message: err.message
-      }
-    });
+  // Log the error with appropriate context
+  logger.error(
+    `Error in ${method} ${originalUrl}: ${error.message}`,
+    error,
+    { requestId: req.id }
+  );
+
+  // Handle ZodError separately to format validation errors nicely
+  if (error instanceof ZodError) {
+    const validationError = fromZodError(error);
+    
+    const details = error.errors.map(err => ({
+      path: err.path.join('.'),
+      message: err.message,
+    }));
+    
+    return sendError(res, validationError.message, 400, { errors: details });
   }
   
-  // Handle unknown errors
-  return res.status(500).json({
-    error: {
-      code: 500,
-      message: 'Internal server error'
+  // Handle database errors
+  if (error instanceof DatabaseError) {
+    // Map different database error types to appropriate HTTP status codes
+    if (error instanceof RecordNotFoundError) {
+      return sendError(res, error, 404);
     }
-  });
-};
+    
+    if (error instanceof UniqueConstraintError) {
+      return sendError(res, error, 409);
+    }
+    
+    if (error instanceof ForeignKeyError) {
+      return sendError(res, error, 400);
+    }
+    
+    if (error instanceof ConnectionError) {
+      return sendError(res, 'Database connection error. Please try again later.', 503);
+    }
+    
+    // Generic database error
+    return sendError(res, 'Database error occurred', 500);
+  }
+  
+  // Handle known error types with specific status codes
+  
+  // Authentication errors
+  if (error.name === 'UnauthorizedError') {
+    return sendError(res, 'Authentication required', 401);
+  }
+  
+  if (error.name === 'ForbiddenError') {
+    return sendError(res, 'Insufficient permissions', 403);
+  }
+  
+  // Rate limiting
+  if (error.name === 'RateLimitError') {
+    return sendError(res, 'Too many requests', 429);
+  }
+  
+  // Parse error from request body
+  if (error instanceof SyntaxError && 'body' in error) {
+    return sendError(res, 'Invalid JSON in request body', 400);
+  }
+  
+  // Default error response
+  // In production, don't expose internal error details
+  const isDev = process.env.NODE_ENV !== 'production';
+  const message = isDev ? error.message : 'Internal server error';
+  
+  // Include stack trace only in development
+  const details = isDev ? { stack: error.stack } : undefined;
+  
+  return sendError(res, message, 500, details);
+}
